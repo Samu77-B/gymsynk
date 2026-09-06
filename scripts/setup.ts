@@ -1,15 +1,10 @@
 import { config } from "dotenv";
-import { neon } from "@neondatabase/serverless";
-import { readFileSync } from "node:fs";
-import path from "node:path";
 import { spawnSync } from "node:child_process";
 
 config({ path: ".env.local" });
 
 async function main() {
-  const connectionString = process.env.DATABASE_URL;
-
-  if (!connectionString) {
+  if (!process.env.DATABASE_URL) {
     console.error("Missing DATABASE_URL in .env.local");
     console.error("");
     console.error("1. Copy your Neon connection string from Vercel → Settings → Environment Variables");
@@ -20,18 +15,16 @@ async function main() {
     process.exit(1);
   }
 
-  const sql = neon(connectionString);
-  const migrationPath = path.join(
-    process.cwd(),
-    "drizzle",
-    "migrations",
-    "0000_initial.sql",
-  );
-  const migrationSql = readFileSync(migrationPath, "utf8");
+  console.log("Pushing schema to Neon...");
+  const push = spawnSync("npx", ["drizzle-kit", "push", "--force"], {
+    stdio: "inherit",
+    shell: true,
+    env: process.env,
+  });
 
-  console.log("Running database migration...");
-  await sql.query(migrationSql);
-  console.log("Migration complete.");
+  if (push.status !== 0) {
+    process.exit(push.status ?? 1);
+  }
 
   console.log("Seeding demo data...");
   const seed = spawnSync("npx", ["tsx", "scripts/seed.ts"], {
