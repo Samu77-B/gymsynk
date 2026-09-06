@@ -28,7 +28,13 @@ export function LoginForm() {
 
     if (!response.ok) {
       const data = await response.json();
-      setError(data.error ?? "Login failed");
+      if (data.error === "Tenant not found") {
+        setError(
+          "Gym not found. Run npm run db:setup locally with your Neon DATABASE_URL, or seed demo-gym in the database.",
+        );
+      } else {
+        setError(data.error ?? "Login failed");
+      }
       setLoading(false);
       return;
     }
