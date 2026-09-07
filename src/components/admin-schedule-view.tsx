@@ -26,7 +26,9 @@ import {
 
 type Schedule = {
   id: string;
+  classId: string;
   classTitle: string;
+  trainerId: string | null;
   trainerName: string;
   startTime: string;
   endTime: string;
@@ -39,11 +41,45 @@ type Schedule = {
 type ClassOption = { id: string; title: string; durationMinutes: number };
 type TrainerOption = { id: string; fullName: string };
 
+type EditForm = {
+  classId: string;
+  trainerId: string;
+  startTime: string;
+  durationMinutes: number;
+  status: "scheduled" | "completed" | "cancelled";
+};
+
+function toDatetimeLocal(value: string) {
+  const date = new Date(value);
+  const offset = date.getTimezoneOffset();
+  const local = new Date(date.getTime() - offset * 60_000);
+  return local.toISOString().slice(0, 16);
+}
+
+function durationFromTimes(startTime: string, endTime: string) {
+  const minutes = Math.round(
+    (new Date(endTime).getTime() - new Date(startTime).getTime()) / 60_000,
+  );
+  return minutes > 0 ? minutes : 45;
+}
+
+function statusVariant(status: string) {
+  switch (status) {
+    case "cancelled":
+      return "destructive" as const;
+    case "completed":
+      return "secondary" as const;
+    default:
+      return "secondary" as const;
+  }
+}
+
 export function AdminScheduleView({
   role,
 }: {
   role: "owner" | "admin" | "trainer" | "member";
 }) {
+  const canManage = role === "owner" || role === "admin" || role === "trainer";
   const canSetDuration = role === "owner" || role === "admin";
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
@@ -52,7 +88,16 @@ export function AdminScheduleView({
   const [trainerId, setTrainerId] = useState("");
   const [startTime, setStartTime] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(45);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState<EditForm>({
+    classId: "",
+    trainerId: "",
+    startTime: "",
+    durationMinutes: 45,
+    status: "scheduled",
+  });
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   async function loadData() {
     const [scheduleRes, classRes, trainerRes] = await Promise.all([
@@ -77,18 +122,16 @@ export function AdminScheduleView({
   async function createSchedule(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
+    setError(null);
 
     const selectedClass = classes.find((item) => item.id === classId);
     if (!selectedClass || !startTime) {
-      setMessage("Choose a class and start time.");
+      setError("Choose a class and start time.");
       return;
     }
 
-    if (
-      canSetDuration &&
-      (durationMinutes < 5 || durationMinutes > 480)
-    ) {
-      setMessage("Duration must be between 5 and 480 minutes.");
+    if (canSetDuration && (durationMinutes < 5 || durationMinutes > 480)) {
+      setError("Duration must be between 5 and 480 minutes.");
       return;
     }
 
@@ -113,12 +156,147 @@ export function AdminScheduleView({
 
     if (!response.ok) {
       const data = await response.json();
-      setMessage(data.error ?? "Could not create schedule");
+      setError(data.error ?? "Could not create schedule");
       return;
     }
 
     setMessage("Schedule created.");
     setStartTime("");
+    await loadData();
+  }
+
+  function startEdit(item: Schedule) {
+    setEditId(item.id);
+    setEditForm({
+      classId: item.classId,
+      trainerId: item.trainerId ?? "",
+      startTime: toDatetimeLocal(item.startTime),
+      durationMinutes: durationFromTimes(item.startTime, item.endTime),
+      status: item.status as EditForm["status"],
+    });
+    setMessage(null);
+    setError(null);
+  }
+
+  async function saveEdit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!editId) {
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    const selectedClass = classes.find((item) => item.id === editForm.classId);
+    if (!selectedClass || !editForm.startTime) {
+      setError("Choose a class and start time.");
+      return;
+    }
+
+    if (
+      canSetDuration &&
+      (editForm.durationMinutes < 5 || editForm.durationMinutes > 480)
+    ) {
+      setError("Duration must be between 5 and 480 minutes.");
+      return;
+    }
+
+    const sessionDuration = canSetDuration
+      ? editForm.durationMinutes
+      : selectedClass.durationMinutes;
+
+    const start = new Date(editForm.startTime);
+    const end = new Date(start);
+    end.setMinutes(end.getMinutes() + sessionDuration);
+
+    const response = await fetch(`/api/schedules/${editId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        classId: editForm.classId,
+        trainerId: editForm.trainerId || null,
+        startTime: start.toISOString(),
+        endTime: end.toISOString(),
+        status: editForm.status,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error ?? "Could not update schedule");
+      return;
+    }
+
+    setMessage("Schedule updated.");
+    setEditId(null);
+    await loadData();
+  }
+
+  async function cancelSchedule(item: Schedule) {
+    if (
+      !window.confirm(
+        `Cancel ${item.classTitle} on ${format(parseISO(item.startTime), "EEE d MMM HH:mm")}?`,
+      )
+    ) {
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    const response = await fetch(`/api/schedules/${item.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: "cancelled" }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error ?? "Could not cancel schedule");
+      return;
+    }
+
+    setMessage("Class cancelled.");
+    if (editId === item.id) {
+      setEditId(null);
+    }
+    await loadData();
+  }
+
+  async function deleteSchedule(item: Schedule) {
+    const bookingNote =
+      item.confirmedCount > 0
+        ? ` This will remove ${item.confirmedCount} booking(s).`
+        : "";
+
+    if (
+      !window.confirm(
+        `Delete ${item.classTitle} on ${format(parseISO(item.startTime), "EEE d MMM HH:mm")}?${bookingNote}`,
+      )
+    ) {
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    const response = await fetch(`/api/schedules/${item.id}`, {
+      method: "DELETE",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error ?? "Could not delete schedule");
+      return;
+    }
+
+    setMessage("Schedule deleted.");
+    if (editId === item.id) {
+      setEditId(null);
+    }
     await loadData();
   }
 
@@ -130,6 +308,10 @@ export function AdminScheduleView({
 
   const selectedClassTitle = classes.find((item) => item.id === classId)?.title;
   const selectedTrainerName = trainers.find((item) => item.id === trainerId)?.fullName;
+  const editClassTitle = classes.find((item) => item.id === editForm.classId)?.title;
+  const editTrainerName = trainers.find(
+    (item) => item.id === editForm.trainerId,
+  )?.fullName;
 
   function handleClassChange(value: string | null) {
     const nextClassId = value ?? "";
@@ -141,8 +323,28 @@ export function AdminScheduleView({
     }
   }
 
+  function handleEditClassChange(value: string | null) {
+    const nextClassId = value ?? "";
+    const selectedClass = classes.find((item) => item.id === nextClassId);
+
+    setEditForm((form) => ({
+      ...form,
+      classId: nextClassId,
+      durationMinutes: selectedClass?.durationMinutes ?? form.durationMinutes,
+    }));
+  }
+
   return (
     <div className="space-y-6">
+      {message ? (
+        <p className="rounded-md border bg-muted px-3 py-2 text-sm">{message}</p>
+      ) : null}
+      {error ? (
+        <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
+          {error}
+        </p>
+      ) : null}
+
       <Card>
         <CardHeader>
           <CardTitle>Add class to schedule</CardTitle>
@@ -235,9 +437,149 @@ export function AdminScheduleView({
               <Button type="submit">Create schedule</Button>
             </div>
           </form>
-          {message ? <p className="mt-3 text-sm">{message}</p> : null}
         </CardContent>
       </Card>
+
+      {editId ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit schedule</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <form className="grid gap-4 md:grid-cols-2" onSubmit={saveEdit}>
+              <div className="space-y-2">
+                <Label>Class</Label>
+                <Select
+                  value={editForm.classId}
+                  onValueChange={handleEditClassChange}
+                  items={classes.map((item) => ({
+                    value: item.id,
+                    label: item.title,
+                  }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue>{editClassTitle}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {classes.map((item) => (
+                      <SelectItem key={item.id} value={item.id} label={item.title}>
+                        {item.title}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Trainer</Label>
+                <Select
+                  value={editForm.trainerId}
+                  onValueChange={(value) =>
+                    setEditForm((form) => ({ ...form, trainerId: value ?? "" }))
+                  }
+                  items={trainers.map((item) => ({
+                    value: item.id,
+                    label: item.fullName,
+                  }))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Optional trainer">
+                      {editTrainerName}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {trainers.map((item) => (
+                      <SelectItem
+                        key={item.id}
+                        value={item.id}
+                        label={item.fullName}
+                      >
+                        {item.fullName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="editStartTime">Start time</Label>
+                <Input
+                  id="editStartTime"
+                  type="datetime-local"
+                  value={editForm.startTime}
+                  onChange={(event) =>
+                    setEditForm((form) => ({
+                      ...form,
+                      startTime: event.target.value,
+                    }))
+                  }
+                  required
+                />
+              </div>
+              {canSetDuration ? (
+                <div className="space-y-2">
+                  <Label htmlFor="editDurationMinutes">Duration (minutes)</Label>
+                  <Input
+                    id="editDurationMinutes"
+                    type="number"
+                    min={5}
+                    max={480}
+                    step={5}
+                    value={editForm.durationMinutes}
+                    onChange={(event) =>
+                      setEditForm((form) => ({
+                        ...form,
+                        durationMinutes: Number(event.target.value),
+                      }))
+                    }
+                    required
+                  />
+                </div>
+              ) : null}
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={editForm.status}
+                  onValueChange={(value) =>
+                    setEditForm((form) => ({
+                      ...form,
+                      status: (value as EditForm["status"]) ?? "scheduled",
+                    }))
+                  }
+                  items={[
+                    { value: "scheduled", label: "Scheduled" },
+                    { value: "completed", label: "Completed" },
+                    { value: "cancelled", label: "Cancelled" },
+                  ]}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue>{editForm.status}</SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="scheduled" label="Scheduled">
+                      Scheduled
+                    </SelectItem>
+                    <SelectItem value="completed" label="Completed">
+                      Completed
+                    </SelectItem>
+                    <SelectItem value="cancelled" label="Cancelled">
+                      Cancelled
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-wrap gap-2 md:col-span-2">
+                <Button type="submit">Save changes</Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setEditId(null)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {Object.entries(grouped).map(([day, items]) => (
         <Card key={day}>
@@ -253,6 +595,7 @@ export function AdminScheduleView({
                   <TableHead>Trainer</TableHead>
                   <TableHead>Fill rate</TableHead>
                   <TableHead>Status</TableHead>
+                  {canManage ? <TableHead /> : null}
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -268,8 +611,39 @@ export function AdminScheduleView({
                       {item.confirmedCount}/{item.capacity} ({item.fillRate}%)
                     </TableCell>
                     <TableCell>
-                      <Badge variant="secondary">{item.status}</Badge>
+                      <Badge variant={statusVariant(item.status)}>
+                        {item.status}
+                      </Badge>
                     </TableCell>
+                    {canManage ? (
+                      <TableCell>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => startEdit(item)}
+                          >
+                            Edit
+                          </Button>
+                          {item.status === "scheduled" ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => void cancelSchedule(item)}
+                            >
+                              Cancel class
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => void deleteSchedule(item)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
+                      </TableCell>
+                    ) : null}
                   </TableRow>
                 ))}
               </TableBody>
