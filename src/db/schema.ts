@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+  boolean,
   check,
   decimal,
   integer,
@@ -38,6 +39,14 @@ export const paymentStatusEnum = pgEnum("payment_status", [
   "refunded",
 ]);
 
+export const membershipStatusEnum = pgEnum("membership_status", [
+  "trialing",
+  "active",
+  "past_due",
+  "cancelled",
+  "incomplete",
+]);
+
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -56,6 +65,7 @@ export const users = pgTable(
     email: varchar("email", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
     role: userRoleEnum("role").notNull(),
+    stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [
@@ -135,12 +145,81 @@ export const staffShifts = pgTable(
   ],
 );
 
+export const membershipPlans = pgTable(
+  "membership_plans",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    slug: varchar("slug", { length: 50 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    maxMembers: integer("max_members").notNull().default(1),
+    priceMonthly: decimal("price_monthly", { precision: 10, scale: 2 }).notNull(),
+    trialDays: integer("trial_days").notNull().default(30),
+    stripePriceId: varchar("stripe_price_id", { length: 255 }),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+  },
+  (table) => [
+    uniqueIndex("membership_plans_tenant_slug_idx").on(
+      table.tenantId,
+      table.slug,
+    ),
+  ],
+);
+
+export const memberships = pgTable("memberships", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  planId: uuid("plan_id")
+    .notNull()
+    .references(() => membershipPlans.id, { onDelete: "restrict" }),
+  primaryUserId: uuid("primary_user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  stripeCustomerId: varchar("stripe_customer_id", { length: 255 }).notNull(),
+  stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 })
+    .notNull()
+    .unique(),
+  status: membershipStatusEnum("status").notNull().default("incomplete"),
+  trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
+  currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const membershipMembers = pgTable(
+  "membership_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    membershipId: uuid("membership_id")
+      .notNull()
+      .references(() => memberships.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    isPrimary: boolean("is_primary").notNull().default(false),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("membership_members_membership_user_idx").on(
+      table.membershipId,
+      table.userId,
+    ),
+  ],
+);
+
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
   classes: many(classes),
   schedules: many(classSchedules),
   bookings: many(bookings),
   shifts: many(staffShifts),
+  membershipPlans: many(membershipPlans),
+  memberships: many(memberships),
 }));
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -151,6 +230,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   schedules: many(classSchedules),
   bookings: many(bookings),
   shifts: many(staffShifts),
+  primaryMemberships: many(memberships),
+  membershipLinks: many(membershipMembers),
 }));
 
 export const classesRelations = relations(classes, ({ one, many }) => ({
@@ -205,3 +286,47 @@ export const staffShiftsRelations = relations(staffShifts, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+export const membershipPlansRelations = relations(
+  membershipPlans,
+  ({ one, many }) => ({
+    tenant: one(tenants, {
+      fields: [membershipPlans.tenantId],
+      references: [tenants.id],
+    }),
+    memberships: many(memberships),
+  }),
+);
+
+export const membershipsRelations = relations(
+  memberships,
+  ({ one, many }) => ({
+    tenant: one(tenants, {
+      fields: [memberships.tenantId],
+      references: [tenants.id],
+    }),
+    plan: one(membershipPlans, {
+      fields: [memberships.planId],
+      references: [membershipPlans.id],
+    }),
+    primaryUser: one(users, {
+      fields: [memberships.primaryUserId],
+      references: [users.id],
+    }),
+    members: many(membershipMembers),
+  }),
+);
+
+export const membershipMembersRelations = relations(
+  membershipMembers,
+  ({ one }) => ({
+    membership: one(memberships, {
+      fields: [membershipMembers.membershipId],
+      references: [memberships.id],
+    }),
+    user: one(users, {
+      fields: [membershipMembers.userId],
+      references: [users.id],
+    }),
+  }),
+);

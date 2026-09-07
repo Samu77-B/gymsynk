@@ -6,6 +6,8 @@ import { getSession } from "@/lib/auth";
 const links = [
   { href: "/admin/schedule", label: "Schedule", roles: ["owner", "admin", "trainer"] },
   { href: "/admin/roster", label: "Staff roster", roles: ["owner", "admin"] },
+  { href: "/admin/members", label: "Members", roles: ["owner", "admin"] },
+  { href: "/member/membership", label: "Membership", roles: ["member"] },
   { href: "/member/book", label: "Book classes", roles: ["owner", "admin", "trainer", "member"] },
 ];
 
@@ -39,12 +41,20 @@ export async function AppNav() {
               <LogoutButton />
             </>
           ) : (
-            <Link
-              href="/login"
-              className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground"
-            >
-              Log in
-            </Link>
+            <>
+              <Link
+                href="/join"
+                className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+              >
+                Join
+              </Link>
+              <Link
+                href="/login"
+                className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground"
+              >
+                Log in
+              </Link>
+            </>
           )}
         </nav>
       </div>

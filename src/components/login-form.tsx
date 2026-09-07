@@ -10,8 +10,8 @@ import { Label } from "@/components/ui/label";
 
 export function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("owner@demo.gymsynk.net");
-  const [tenantSlug, setTenantSlug] = useState("demo-gym");
+  const [email, setEmail] = useState("owner@reset.gymsynk.net");
+  const [tenantSlug, setTenantSlug] = useState("reset");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -56,7 +56,7 @@ export function LoginForm() {
               id="tenantSlug"
               value={tenantSlug}
               onChange={(event) => setTenantSlug(event.target.value)}
-              placeholder="demo-gym"
+              placeholder="reset"
               required
             />
           </div>
@@ -76,7 +76,7 @@ export function LoginForm() {
           </Button>
         </form>
         <p className="mt-4 text-sm text-muted-foreground">
-          Demo accounts are seeded after running <code>npm run db:seed</code>.
+          Staff accounts are created when you run <code>npm run db:seed-reset</code>.
         </p>
       </CardContent>
     </Card>

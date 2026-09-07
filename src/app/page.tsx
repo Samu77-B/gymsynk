@@ -68,9 +68,14 @@ export default async function HomePage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                Connect Neon, run migrations, seed demo data, then log in.
+                New members can join online. Staff log in after seeding Reset.
               </p>
-              <Button render={<Link href="/login" />}>Log in</Button>
+              <div className="flex flex-wrap gap-2">
+                <Button render={<Link href="/join" />}>Join now</Button>
+                <Button variant="outline" render={<Link href="/login" />}>
+                  Log in
+                </Button>
+              </div>
             </CardContent>
           </Card>
         )}

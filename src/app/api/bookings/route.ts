@@ -2,9 +2,10 @@ import { and, count, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb } from "@/db";
-import { bookings, classSchedules, classes } from "@/db/schema";
+import { bookings, classSchedules } from "@/db/schema";
 import { parseJson } from "@/lib/api";
 import { requireSession, unauthorizedResponse } from "@/lib/auth";
+import { userCanBookClasses } from "@/lib/membership";
 
 const createBookingSchema = z.object({
   scheduleId: z.string().uuid(),
@@ -64,6 +65,18 @@ export async function POST(request: Request) {
     session.role === "member"
       ? session.userId
       : parsed.data.memberId ?? session.userId;
+
+  if (session.role === "member") {
+    const access = await userCanBookClasses(
+      session.tenantId,
+      session.userId,
+      session.role,
+    );
+
+    if (!access.allowed) {
+      return Response.json({ error: access.reason }, { status: 403 });
+    }
+  }
 
   const db = getDb();
 

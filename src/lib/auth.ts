@@ -14,7 +14,7 @@ export type SessionUser = {
 const SESSION_COOKIE = "gymsynk_session";
 
 function getSecret() {
-  const secret = process.env.AUTH_SECRET;
+  const secret = process.env.AUTH_SECRET?.trim();
 
   if (!secret) {
     throw new Error("AUTH_SECRET is not set");
