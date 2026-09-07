@@ -110,6 +110,9 @@ export function AdminScheduleView() {
     return acc;
   }, {});
 
+  const selectedClassTitle = classes.find((item) => item.id === classId)?.title;
+  const selectedTrainerName = trainers.find((item) => item.id === trainerId)?.fullName;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -120,13 +123,22 @@ export function AdminScheduleView() {
           <form className="grid gap-4 md:grid-cols-2" onSubmit={createSchedule}>
             <div className="space-y-2">
               <Label>Class</Label>
-              <Select value={classId} onValueChange={(value) => setClassId(value ?? "")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select class" />
+              <Select
+                value={classId}
+                onValueChange={(value) => setClassId(value ?? "")}
+                items={classes.map((item) => ({
+                  value: item.id,
+                  label: item.title,
+                }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select class">
+                    {selectedClassTitle}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {classes.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
+                    <SelectItem key={item.id} value={item.id} label={item.title}>
                       {item.title}
                     </SelectItem>
                   ))}
@@ -135,13 +147,26 @@ export function AdminScheduleView() {
             </div>
             <div className="space-y-2">
               <Label>Trainer</Label>
-              <Select value={trainerId} onValueChange={(value) => setTrainerId(value ?? "")}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Optional trainer" />
+              <Select
+                value={trainerId}
+                onValueChange={(value) => setTrainerId(value ?? "")}
+                items={trainers.map((item) => ({
+                  value: item.id,
+                  label: item.fullName,
+                }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Optional trainer">
+                    {selectedTrainerName}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {trainers.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
+                    <SelectItem
+                      key={item.id}
+                      value={item.id}
+                      label={item.fullName}
+                    >
                       {item.fullName}
                     </SelectItem>
                   ))}

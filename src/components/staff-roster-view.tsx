@@ -91,6 +91,8 @@ export function StaffRosterView() {
     await loadData();
   }
 
+  const selectedStaffName = staff.find((item) => item.id === staffId)?.fullName;
+
   return (
     <div className="space-y-6">
       <Card>
@@ -101,13 +103,29 @@ export function StaffRosterView() {
           <form className="grid gap-4 md:grid-cols-2" onSubmit={createShift}>
             <div className="space-y-2">
               <Label>Staff member</Label>
-              <Select value={staffId} onValueChange={(value) => setStaffId(value ?? "")} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select staff" />
+              <Select
+                value={staffId}
+                onValueChange={(value) => setStaffId(value ?? "")}
+                required
+                items={staff.map((item) => ({
+                  value: item.id,
+                  label: `${item.fullName} (${item.role})`,
+                }))}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select staff">
+                    {selectedStaffName
+                      ? `${selectedStaffName} (${staff.find((item) => item.id === staffId)?.role})`
+                      : null}
+                  </SelectValue>
                 </SelectTrigger>
                 <SelectContent>
                   {staff.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
+                    <SelectItem
+                      key={item.id}
+                      value={item.id}
+                      label={`${item.fullName} (${item.role})`}
+                    >
                       {item.fullName} ({item.role})
                     </SelectItem>
                   ))}

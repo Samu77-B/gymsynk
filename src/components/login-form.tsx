@@ -30,7 +30,7 @@ export function LoginForm() {
       const data = await response.json();
       if (data.error === "Tenant not found") {
         setError(
-          "Gym not found. Run npm run db:setup locally with your Neon DATABASE_URL, or seed demo-gym in the database.",
+          "Gym not found on this server’s database. Check that Vercel DATABASE_URL matches the Neon database where you ran npm run db:seed-reset.",
         );
       } else {
         setError(data.error ?? "Login failed");

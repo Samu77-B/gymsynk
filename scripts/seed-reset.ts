@@ -33,11 +33,24 @@ async function main() {
 
   const existingTenant = await db.query.tenants.findFirst({
     where: eq(tenants.slug, "reset"),
+    with: {
+      users: true,
+      membershipPlans: true,
+    },
   });
 
-  if (existingTenant) {
+  if (
+    existingTenant &&
+    existingTenant.users.length > 0 &&
+    existingTenant.membershipPlans.length > 0
+  ) {
     console.log("Reset tenant already exists. Skipping seed.");
     return;
+  }
+
+  if (existingTenant) {
+    console.log("Incomplete Reset seed found. Removing and re-seeding...");
+    await db.delete(tenants).where(eq(tenants.id, existingTenant.id));
   }
 
   const [tenant] = await db
