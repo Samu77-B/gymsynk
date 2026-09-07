@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth";
 const links = [
   { href: "/admin/schedule", label: "Schedule", roles: ["owner", "admin", "trainer"] },
   { href: "/admin/roster", label: "Staff roster", roles: ["owner", "admin"] },
+  { href: "/admin/staff", label: "Staff team", roles: ["owner", "admin"] },
   { href: "/admin/members", label: "Members", roles: ["owner", "admin"] },
   { href: "/member/membership", label: "Membership", roles: ["member"] },
   { href: "/member/book", label: "Book classes", roles: ["owner", "admin", "trainer", "member"] },

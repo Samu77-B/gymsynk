@@ -66,6 +66,11 @@ export const users = pgTable(
     phone: varchar("phone", { length: 50 }),
     role: userRoleEnum("role").notNull(),
     stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+    isActive: boolean("is_active").notNull().default(true),
+    bio: text("bio"),
+    photoUrl1: varchar("photo_url_1", { length: 2048 }),
+    photoUrl2: varchar("photo_url_2", { length: 2048 }),
+    photoUrl3: varchar("photo_url_3", { length: 2048 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [

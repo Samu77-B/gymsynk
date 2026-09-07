@@ -13,18 +13,27 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const role = searchParams.get("role");
+  const activeOnly = searchParams.get("active") === "true";
 
   const db = getDb();
 
-  const whereClause = role
-    ? and(
-        eq(users.tenantId, session.tenantId),
-        inArray(users.role, role.split(",") as Array<typeof users.$inferSelect.role>),
-      )
-    : eq(users.tenantId, session.tenantId);
+  const conditions = [eq(users.tenantId, session.tenantId)];
+
+  if (role) {
+    conditions.push(
+      inArray(
+        users.role,
+        role.split(",") as Array<typeof users.$inferSelect.role>,
+      ),
+    );
+  }
+
+  if (activeOnly) {
+    conditions.push(eq(users.isActive, true));
+  }
 
   const userList = await db.query.users.findMany({
-    where: whereClause,
+    where: and(...conditions),
   });
 
   return Response.json({ users: userList });

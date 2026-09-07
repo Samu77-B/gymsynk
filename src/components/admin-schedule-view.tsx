@@ -58,7 +58,7 @@ export function AdminScheduleView({
     const [scheduleRes, classRes, trainerRes] = await Promise.all([
       fetch("/api/schedules"),
       fetch("/api/classes"),
-      fetch("/api/users?role=trainer,admin,owner"),
+      fetch("/api/users?role=trainer,admin,owner&active=true"),
     ]);
 
     const scheduleData = await scheduleRes.json();

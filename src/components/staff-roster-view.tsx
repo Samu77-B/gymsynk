@@ -47,7 +47,7 @@ export function StaffRosterView() {
   async function loadData() {
     const [shiftRes, staffRes] = await Promise.all([
       fetch("/api/shifts"),
-      fetch("/api/users?role=trainer,admin,owner"),
+      fetch("/api/users?role=trainer,admin,owner&active=true"),
     ]);
 
     setShifts((await shiftRes.json()).shifts ?? []);
