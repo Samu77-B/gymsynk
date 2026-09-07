@@ -120,14 +120,28 @@ export async function POST(request: Request) {
     }
   }
 
+  const start = new Date(startTime);
+  const end = new Date(endTime);
+
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+    return Response.json({ error: "Invalid start or end time" }, { status: 400 });
+  }
+
+  if (end <= start) {
+    return Response.json(
+      { error: "End time must be after start time" },
+      { status: 400 },
+    );
+  }
+
   const [schedule] = await db
     .insert(classSchedules)
     .values({
       tenantId: session.tenantId,
       classId,
       trainerId: trainerId ?? null,
-      startTime: new Date(startTime),
-      endTime: new Date(endTime),
+      startTime: start,
+      endTime: end,
       status: status ?? "scheduled",
     })
     .returning();

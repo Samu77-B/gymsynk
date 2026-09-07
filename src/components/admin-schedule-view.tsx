@@ -39,13 +39,19 @@ type Schedule = {
 type ClassOption = { id: string; title: string; durationMinutes: number };
 type TrainerOption = { id: string; fullName: string };
 
-export function AdminScheduleView() {
+export function AdminScheduleView({
+  role,
+}: {
+  role: "owner" | "admin" | "trainer" | "member";
+}) {
+  const canSetDuration = role === "owner" || role === "admin";
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [trainers, setTrainers] = useState<TrainerOption[]>([]);
   const [classId, setClassId] = useState("");
   const [trainerId, setTrainerId] = useState("");
   const [startTime, setStartTime] = useState("");
+  const [durationMinutes, setDurationMinutes] = useState(45);
   const [message, setMessage] = useState<string | null>(null);
 
   async function loadData() {
@@ -78,9 +84,21 @@ export function AdminScheduleView() {
       return;
     }
 
+    if (
+      canSetDuration &&
+      (durationMinutes < 5 || durationMinutes > 480)
+    ) {
+      setMessage("Duration must be between 5 and 480 minutes.");
+      return;
+    }
+
+    const sessionDuration = canSetDuration
+      ? durationMinutes
+      : selectedClass.durationMinutes;
+
     const start = new Date(startTime);
     const end = new Date(start);
-    end.setMinutes(end.getMinutes() + selectedClass.durationMinutes);
+    end.setMinutes(end.getMinutes() + sessionDuration);
 
     const response = await fetch("/api/schedules", {
       method: "POST",
@@ -113,6 +131,16 @@ export function AdminScheduleView() {
   const selectedClassTitle = classes.find((item) => item.id === classId)?.title;
   const selectedTrainerName = trainers.find((item) => item.id === trainerId)?.fullName;
 
+  function handleClassChange(value: string | null) {
+    const nextClassId = value ?? "";
+    setClassId(nextClassId);
+
+    const selectedClass = classes.find((item) => item.id === nextClassId);
+    if (selectedClass) {
+      setDurationMinutes(selectedClass.durationMinutes);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Card>
@@ -125,7 +153,7 @@ export function AdminScheduleView() {
               <Label>Class</Label>
               <Select
                 value={classId}
-                onValueChange={(value) => setClassId(value ?? "")}
+                onValueChange={handleClassChange}
                 items={classes.map((item) => ({
                   value: item.id,
                   label: item.title,
@@ -183,7 +211,27 @@ export function AdminScheduleView() {
                 required
               />
             </div>
-            <div className="flex items-end">
+            {canSetDuration ? (
+              <div className="space-y-2">
+                <Label htmlFor="durationMinutes">Duration (minutes)</Label>
+                <Input
+                  id="durationMinutes"
+                  type="number"
+                  min={5}
+                  max={480}
+                  step={5}
+                  value={durationMinutes}
+                  onChange={(event) =>
+                    setDurationMinutes(Number(event.target.value))
+                  }
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Defaults from the class type; change for this session only.
+                </p>
+              </div>
+            ) : null}
+            <div className={`flex items-end ${canSetDuration ? "md:col-span-2" : ""}`}>
               <Button type="submit">Create schedule</Button>
             </div>
           </form>

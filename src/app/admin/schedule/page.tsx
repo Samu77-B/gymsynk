@@ -25,7 +25,7 @@ export default async function AdminSchedulePage() {
             Upcoming classes for {session.tenantSlug}
           </p>
         </div>
-        <AdminScheduleView />
+        <AdminScheduleView role={session.role} />
       </main>
     </>
   );
