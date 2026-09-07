@@ -38,11 +38,13 @@ export async function POST(request: Request) {
     return jsonError("User not found for this gym", 404);
   }
 
-  if (
-    user.role !== "member" &&
-    !user.isActive
-  ) {
-    return jsonError("This staff account is paused. Contact your gym manager.", 403);
+  if (!user.isActive) {
+    return jsonError(
+      user.role === "member"
+        ? "Your membership account is paused. Contact the gym."
+        : "This staff account is paused. Contact your gym manager.",
+      403,
+    );
   }
 
   await createSession({

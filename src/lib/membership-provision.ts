@@ -2,13 +2,7 @@ import { and, eq } from "drizzle-orm";
 import type Stripe from "stripe";
 
 import { getDb } from "@/db";
-import {
-  membershipMembers,
-  membershipPlans,
-  memberships,
-  tenants,
-  users,
-} from "@/db/schema";
+import { memberProfiles, membershipMembers, membershipPlans, memberships, tenants, users } from "@/db/schema";
 import { getStripe, mapStripeSubscriptionStatus } from "@/lib/stripe";
 import {
   getInvoiceSubscriptionId,
@@ -112,6 +106,7 @@ export async function provisionMembershipFromCheckout(
       status,
       trialEndsAt: getSubscriptionTrialEnd(subscription),
       currentPeriodEnd: getSubscriptionPeriodEnd(subscription),
+      startDate: new Date(),
     })
     .returning();
 
@@ -127,6 +122,19 @@ export async function provisionMembershipFromCheckout(
       membershipId: membership.id,
       userId: user.id,
       isPrimary: true,
+    });
+  }
+
+  const existingProfile = await db.query.memberProfiles.findFirst({
+    where: eq(memberProfiles.userId, user.id),
+  });
+
+  if (!existingProfile) {
+    await db.insert(memberProfiles).values({
+      tenantId,
+      userId: user.id,
+      legalName: fullName,
+      termsAcceptedAt: new Date(),
     });
   }
 

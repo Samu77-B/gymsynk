@@ -2,6 +2,7 @@ import { relations } from "drizzle-orm";
 import {
   boolean,
   check,
+  date,
   decimal,
   integer,
   pgEnum,
@@ -45,6 +46,13 @@ export const membershipStatusEnum = pgEnum("membership_status", [
   "past_due",
   "cancelled",
   "incomplete",
+]);
+
+export const parqStatusEnum = pgEnum("parq_status", [
+  "not_started",
+  "cleared",
+  "doctor_required",
+  "declined",
 ]);
 
 export const tenants = pgTable("tenants", {
@@ -193,6 +201,8 @@ export const memberships = pgTable("memberships", {
   status: membershipStatusEnum("status").notNull().default("incomplete"),
   trialEndsAt: timestamp("trial_ends_at", { withTimezone: true }),
   currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+  startDate: timestamp("start_date", { withTimezone: true }),
+  contractEndDate: timestamp("contract_end_date", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -217,6 +227,47 @@ export const membershipMembers = pgTable(
   ],
 );
 
+export const memberProfiles = pgTable("member_profiles", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" })
+    .unique(),
+  legalName: varchar("legal_name", { length: 255 }),
+  dateOfBirth: date("date_of_birth"),
+  addressLine1: varchar("address_line_1", { length: 255 }),
+  addressLine2: varchar("address_line_2", { length: 255 }),
+  city: varchar("city", { length: 100 }),
+  county: varchar("county", { length: 100 }),
+  postcode: varchar("postcode", { length: 20 }),
+  country: varchar("country", { length: 100 }).default("United Kingdom"),
+  emergencyContactName: varchar("emergency_contact_name", { length: 255 }),
+  emergencyContactRelationship: varchar("emergency_contact_relationship", {
+    length: 100,
+  }),
+  emergencyContactPhone: varchar("emergency_contact_phone", { length: 50 }),
+  parqStatus: parqStatusEnum("parq_status").notNull().default("not_started"),
+  medicalNotes: text("medical_notes"),
+  accessCardId: varchar("access_card_id", { length: 100 }),
+  memberPhotoUrl: varchar("member_photo_url", { length: 2048 }),
+  billingSameAsHome: boolean("billing_same_as_home").notNull().default(true),
+  billingAddressLine1: varchar("billing_address_line_1", { length: 255 }),
+  billingAddressLine2: varchar("billing_address_line_2", { length: 255 }),
+  billingCity: varchar("billing_city", { length: 100 }),
+  billingPostcode: varchar("billing_postcode", { length: 20 }),
+  billingCountry: varchar("billing_country", { length: 100 }),
+  joiningFeePaid: boolean("joining_fee_paid").notNull().default(false),
+  joiningFeeAmount: decimal("joining_fee_amount", { precision: 10, scale: 2 }),
+  joiningFeePaidAt: timestamp("joining_fee_paid_at", { withTimezone: true }),
+  waiverSignedAt: timestamp("waiver_signed_at", { withTimezone: true }),
+  termsAcceptedAt: timestamp("terms_accepted_at", { withTimezone: true }),
+  paymentMethodNote: varchar("payment_method_note", { length: 255 }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
   classes: many(classes),
@@ -225,6 +276,7 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   shifts: many(staffShifts),
   membershipPlans: many(membershipPlans),
   memberships: many(memberships),
+  memberProfiles: many(memberProfiles),
 }));
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -237,6 +289,10 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   shifts: many(staffShifts),
   primaryMemberships: many(memberships),
   membershipLinks: many(membershipMembers),
+  memberProfile: one(memberProfiles, {
+    fields: [users.id],
+    references: [memberProfiles.userId],
+  }),
 }));
 
 export const classesRelations = relations(classes, ({ one, many }) => ({
@@ -335,3 +391,14 @@ export const membershipMembersRelations = relations(
     }),
   }),
 );
+
+export const memberProfilesRelations = relations(memberProfiles, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [memberProfiles.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [memberProfiles.userId],
+    references: [users.id],
+  }),
+}));
