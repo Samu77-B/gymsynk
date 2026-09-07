@@ -14,7 +14,12 @@ export function LogoutButton() {
   }
 
   return (
-    <Button variant="outline" size="sm" onClick={() => void handleLogout()}>
+    <Button
+      variant="outline"
+      size="sm"
+      className="border-white/20 bg-transparent text-white hover:bg-white/10"
+      onClick={() => void handleLogout()}
+    >
       Log out
     </Button>
   );

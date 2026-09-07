@@ -19,7 +19,8 @@ export const metadata: Metadata = {
   title: "GymSynk",
   description: "Multi-tenant gym and class management platform",
   icons: {
-    icon: "/assets/gymsynk-fav.png",
+    icon: "/gymsynk-fav-02.png",
+    apple: "/gymsynk-fav-02-wht.png",
   },
 };
 

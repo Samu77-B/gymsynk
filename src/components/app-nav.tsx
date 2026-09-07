@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { LogoutButton } from "@/components/logout-button";
@@ -15,10 +16,17 @@ export async function AppNav() {
   const session = await getSession();
 
   return (
-    <header className="border-b bg-background">
+    <header className="border-b border-white/10 bg-neutral-950 text-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          gymsynk
+        <Link href="/" className="flex shrink-0 items-center">
+          <Image
+            src="/GymSynk-Logo02-B-Wht.png"
+            alt="GymSynk"
+            width={168}
+            height={36}
+            className="h-8 w-auto"
+            priority
+          />
         </Link>
 
         <nav className="flex flex-wrap items-center gap-2">
@@ -30,12 +38,12 @@ export async function AppNav() {
                   <Link
                     key={link.href}
                     href={link.href}
-                    className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+                    className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] font-medium text-white/90 hover:bg-white/10"
                   >
                     {link.label}
                   </Link>
                 ))}
-              <span className="hidden text-sm text-muted-foreground sm:inline">
+              <span className="hidden text-sm text-white/60 sm:inline">
                 {session.fullName} · {session.tenantSlug}
               </span>
               <LogoutButton />
@@ -44,13 +52,13 @@ export async function AppNav() {
             <>
               <Link
                 href="/join"
-                className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] font-medium hover:bg-muted"
+                className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] font-medium text-white/90 hover:bg-white/10"
               >
                 Join
               </Link>
               <Link
                 href="/login"
-                className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] bg-primary px-2.5 text-[0.8rem] font-medium text-primary-foreground"
+                className="inline-flex h-7 items-center rounded-[min(var(--radius-md),12px)] bg-white px-2.5 text-[0.8rem] font-medium text-neutral-950 hover:bg-white/90"
               >
                 Log in
               </Link>
