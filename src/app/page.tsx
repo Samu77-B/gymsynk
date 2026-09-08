@@ -7,8 +7,8 @@ import {
   Users,
 } from "lucide-react";
 
-import { AuthShell } from "@/components/auth-shell";
 import { DashboardShell } from "@/components/dashboard-shell";
+import { LandingPage } from "@/components/marketing/landing-page";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
@@ -49,29 +49,7 @@ export default async function HomePage() {
   const session = await getSession();
 
   if (!session) {
-    return (
-      <AuthShell>
-        <Card className="border-border/60 shadow-sm">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl">Welcome to GymSynk</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-center">
-            <p className="text-sm text-muted-foreground">
-              Gym management software for modern fitness businesses. Join online
-              or log in to manage your gym.
-            </p>
-            <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-              <Button render={<Link href="/join?tenant=reset" />}>
-                Join Reset — first month free
-              </Button>
-              <Button variant="outline" render={<Link href="/login" />}>
-                Log in
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </AuthShell>
-    );
+    return <LandingPage />;
   }
 
   const brand = await getTenantBrand(session.tenantSlug);
@@ -132,10 +110,7 @@ export default async function HomePage() {
                     <p className="mt-1 mb-4 text-sm text-muted-foreground">
                       {link.description}
                     </p>
-                    <Button
-                      size="sm"
-                      render={<Link href={link.href} />}
-                    >
+                    <Button size="sm" render={<Link href={link.href} />}>
                       Open
                     </Button>
                   </CardContent>

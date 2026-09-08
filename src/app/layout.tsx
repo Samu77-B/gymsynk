@@ -16,8 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GymSynk",
-  description: "Multi-tenant gym and class management platform",
+  title: "GymSynk — gym management by Paradigm Studio",
+  description:
+    "Members, classes, staff, and billing for modern gyms. White-label dashboards, Stripe memberships, and embeddable schedules.",
   icons: {
     icon: "/gymsynk-fav-02.png",
     apple: "/gymsynk-fav-02-wht.png",
