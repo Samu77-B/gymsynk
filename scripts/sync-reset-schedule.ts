@@ -8,7 +8,7 @@ import { classes, classSchedules, tenants, users } from "../src/db/schema";
 import {
   buildResetScheduleInserts,
   resetClassInsertValues,
-} from "./reset-weekly-schedule";
+} from "../src/lib/reset-weekly-schedule";
 
 config({ path: ".env.local" });
 

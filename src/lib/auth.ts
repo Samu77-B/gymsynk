@@ -86,3 +86,7 @@ export function canManageStaff(role: SessionUser["role"]) {
 export function canManageSchedules(role: SessionUser["role"]) {
   return role === "owner" || role === "admin" || role === "trainer";
 }
+
+export function canPublishSchedule(role: SessionUser["role"]) {
+  return role === "owner" || role === "admin";
+}

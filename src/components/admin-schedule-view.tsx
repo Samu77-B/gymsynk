@@ -76,10 +76,13 @@ function statusVariant(status: string) {
 
 export function AdminScheduleView({
   role,
+  tenantSlug,
 }: {
   role: "owner" | "admin" | "trainer" | "member";
+  tenantSlug: string;
 }) {
   const canManage = role === "owner" || role === "admin" || role === "trainer";
+  const canPublish = role === "owner" || role === "admin";
   const canSetDuration = role === "owner" || role === "admin";
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
@@ -98,6 +101,13 @@ export function AdminScheduleView({
   });
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [publishInfo, setPublishInfo] = useState<{
+    scheduleApi: string;
+    embed: string;
+    sessionsAdded: number;
+    upcomingCount: number;
+  } | null>(null);
 
   async function loadData() {
     const [scheduleRes, classRes, trainerRes] = await Promise.all([
@@ -265,6 +275,37 @@ export function AdminScheduleView({
     await loadData();
   }
 
+  async function publishSchedule() {
+    setPublishing(true);
+    setMessage(null);
+    setError(null);
+
+    const response = await fetch("/api/schedules/publish", {
+      method: "POST",
+    });
+    const data = await response.json();
+
+    setPublishing(false);
+
+    if (!response.ok) {
+      setError(data.error ?? "Could not publish schedule");
+      return;
+    }
+
+    setPublishInfo({
+      scheduleApi: data.urls.scheduleApi,
+      embed: data.urls.embed,
+      sessionsAdded: data.sessionsAdded,
+      upcomingCount: data.upcomingCount,
+    });
+    setMessage(
+      data.sessionsAdded > 0
+        ? `Published. Added ${data.sessionsAdded} session(s); ${data.upcomingCount} upcoming in the next 4 weeks.`
+        : "Published. Your website feed is up to date.",
+    );
+    await loadData();
+  }
+
   async function deleteSchedule(item: Schedule) {
     const bookingNote =
       item.confirmedCount > 0
@@ -343,6 +384,55 @@ export function AdminScheduleView({
         <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
+      ) : null}
+
+      {canPublish ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Publish to website</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Push the latest schedule to your public timetable and embed feed for{" "}
+              <span className="font-medium text-foreground">{tenantSlug}</span>.
+              Edits you make here are included; publish also fills the next 4 weeks
+              from your weekly pattern.
+            </p>
+            <Button
+              type="button"
+              onClick={() => void publishSchedule()}
+              disabled={publishing}
+            >
+              {publishing ? "Publishing…" : "Publish schedule"}
+            </Button>
+            {publishInfo ? (
+              <div className="space-y-2 rounded-md border bg-muted/40 p-3 text-sm">
+                <p>
+                  <span className="font-medium">Public API:</span>{" "}
+                  <a
+                    className="break-all underline"
+                    href={publishInfo.scheduleApi}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {publishInfo.scheduleApi}
+                  </a>
+                </p>
+                <p>
+                  <span className="font-medium">Embed page:</span>{" "}
+                  <a
+                    className="break-all underline"
+                    href={publishInfo.embed}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    {publishInfo.embed}
+                  </a>
+                </p>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
       ) : null}
 
       <Card>

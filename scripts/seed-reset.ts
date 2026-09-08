@@ -16,7 +16,7 @@ import {
 import {
   buildResetScheduleInserts,
   resetClassInsertValues,
-} from "./reset-weekly-schedule";
+} from "../src/lib/reset-weekly-schedule";
 
 config({ path: ".env.local" });
 
