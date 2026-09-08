@@ -194,6 +194,22 @@ export function EmbedScheduleView({
           letter-spacing: 0.08em;
           text-transform: uppercase;
         }
+        .gymsynk-embed__powered {
+          margin-top: 1.25rem;
+          padding-top: 0.75rem;
+          border-top: 1px solid var(--embed-border);
+          font-size: 0.6875rem;
+          color: var(--embed-muted);
+          text-align: center;
+        }
+        .gymsynk-embed__powered a {
+          color: var(--embed-muted);
+          font-weight: 600;
+          text-decoration: none;
+        }
+        .gymsynk-embed__powered a:hover {
+          color: var(--embed-text);
+        }
       `}</style>
 
       <div className="gymsynk-embed__header">
@@ -268,6 +284,17 @@ export function EmbedScheduleView({
       {!error && !data ? (
         <p className="gymsynk-embed__empty">Loading schedule…</p>
       ) : null}
+
+      <p className="gymsynk-embed__powered">
+        Powered by{" "}
+        <a
+          href="https://gymsynk.net"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          GymSynk
+        </a>
+      </p>
     </div>
   );
 }

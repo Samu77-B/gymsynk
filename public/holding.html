@@ -105,6 +105,27 @@
       color: rgba(255, 255, 255, 0.72);
       font-size: 0.85rem;
     }
+
+    .powered {
+      position: fixed;
+      bottom: 1rem;
+      left: 0;
+      right: 0;
+      z-index: 1;
+      text-align: center;
+      font-size: 0.75rem;
+      color: rgba(255, 255, 255, 0.45);
+    }
+
+    .powered a {
+      color: rgba(255, 255, 255, 0.65);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .powered a:hover {
+      color: rgba(255, 255, 255, 0.85);
+    }
   </style>
 </head>
 <body>
@@ -117,5 +138,6 @@
       <span>Already a member? <a href="/login" style="color:#fff;text-transform:none;letter-spacing:0;padding:0;background:none;font-weight:500;">Log in</a></span>
     </div>
   </main>
+  <p class="powered">Powered by <a href="https://gymsynk.net">GymSynk</a></p>
 </body>
 </html>

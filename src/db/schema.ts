@@ -59,6 +59,8 @@ export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
   slug: varchar("slug", { length: 100 }).notNull().unique(),
+  logoUrl: varchar("logo_url", { length: 2048 }),
+  primaryColor: varchar("primary_color", { length: 7 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

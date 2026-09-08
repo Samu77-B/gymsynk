@@ -1,23 +1,30 @@
 import { Suspense } from "react";
 
-import { AppNav } from "@/components/app-nav";
+import { AuthShell } from "@/components/auth-shell";
 import { JoinSuccessClient } from "@/components/join-success-client";
+import { getDefaultTenantSlug } from "@/lib/membership-provision";
+import { getTenantBrand } from "@/lib/tenant-branding";
 
-export default function JoinSuccessPage() {
+export default async function JoinSuccessPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tenant?: string }>;
+}) {
+  const params = await searchParams;
+  const tenantSlug = params.tenant ?? (await getDefaultTenantSlug());
+  const brand = await getTenantBrand(tenantSlug);
+
   return (
-    <>
-      <AppNav />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-10">
-        <Suspense
-          fallback={
-            <p className="text-center text-sm text-muted-foreground">
-              Loading...
-            </p>
-          }
-        >
-          <JoinSuccessClient />
-        </Suspense>
-      </main>
-    </>
+    <AuthShell brand={brand}>
+      <Suspense
+        fallback={
+          <p className="text-center text-sm text-muted-foreground">
+            Loading...
+          </p>
+        }
+      >
+        <JoinSuccessClient />
+      </Suspense>
+    </AuthShell>
   );
 }
