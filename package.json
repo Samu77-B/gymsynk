@@ -11,6 +11,7 @@
     "db:push": "drizzle-kit push",
     "db:seed": "tsx scripts/seed.ts",
     "db:seed-reset": "tsx scripts/seed-reset.ts",
+    "db:sync-reset-schedule": "tsx scripts/sync-reset-schedule.ts",
     "db:setup": "tsx scripts/setup.ts"
   },
   "dependencies": {

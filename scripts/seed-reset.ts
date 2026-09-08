@@ -13,14 +13,12 @@ import {
   tenants,
   users,
 } from "../src/db/schema";
+import {
+  buildResetScheduleInserts,
+  resetClassInsertValues,
+} from "./reset-weekly-schedule";
 
 config({ path: ".env.local" });
-
-function addMinutes(date: Date, minutes: number) {
-  const next = new Date(date);
-  next.setMinutes(next.getMinutes() + minutes);
-  return next;
-}
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
@@ -118,79 +116,23 @@ async function main() {
     },
   ]);
 
-  const [strength, hiit, yoga, pilates] = await db
+  const insertedClasses = await db
     .insert(classes)
-    .values([
-      {
-        tenantId: tenant.id,
-        title: "Strength & Tone",
-        description: "Weights and resistance training",
-        capacity: 12,
-        durationMinutes: 45,
-        price: "0.00",
-      },
-      {
-        tenantId: tenant.id,
-        title: "HIIT",
-        description: "High intensity interval training",
-        capacity: 14,
-        durationMinutes: 45,
-        price: "0.00",
-      },
-      {
-        tenantId: tenant.id,
-        title: "Yoga Flow",
-        description: "Mobility, strength, and recovery",
-        capacity: 16,
-        durationMinutes: 60,
-        price: "0.00",
-      },
-      {
-        tenantId: tenant.id,
-        title: "Pilates",
-        description: "Core-focused reformer-style floor work",
-        capacity: 12,
-        durationMinutes: 50,
-        price: "0.00",
-      },
-    ])
+    .values(resetClassInsertValues(tenant.id))
     .returning();
 
-  const tomorrowMorning = setMinutes(setHours(addDays(new Date(), 1), 6), 30);
-  const tomorrowMidday = setMinutes(setHours(addDays(new Date(), 1), 12), 0);
-  const dayAfterEvening = setMinutes(setHours(addDays(new Date(), 2), 18), 0);
-  const weekendMorning = setMinutes(setHours(addDays(new Date(), 3), 9), 30);
+  const classIdByTitle = new Map(
+    insertedClasses.map((item) => [item.title, item.id]),
+  );
 
-  await db.insert(classSchedules).values([
-    {
-      tenantId: tenant.id,
-      classId: hiit.id,
-      trainerId: trainer.id,
-      startTime: tomorrowMorning,
-      endTime: addMinutes(tomorrowMorning, hiit.durationMinutes),
-    },
-    {
-      tenantId: tenant.id,
-      classId: strength.id,
-      trainerId: trainer.id,
-      startTime: tomorrowMidday,
-      endTime: addMinutes(tomorrowMidday, strength.durationMinutes),
-    },
-    {
-      tenantId: tenant.id,
-      classId: yoga.id,
-      trainerId: admin.id,
-      startTime: dayAfterEvening,
-      endTime: addMinutes(dayAfterEvening, yoga.durationMinutes),
-    },
-    {
-      tenantId: tenant.id,
-      classId: pilates.id,
-      trainerId: trainer.id,
-      startTime: weekendMorning,
-      endTime: addMinutes(weekendMorning, pilates.durationMinutes),
-    },
-  ]);
+  const scheduleRows = buildResetScheduleInserts({
+    tenantId: tenant.id,
+    classIdByTitle,
+    trainerId: trainer.id,
+    weeksAhead: 4,
+  });
+
+  await db.insert(classSchedules).values(scheduleRows);
 
   await db.insert(staffShifts).values([
     {
