@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 
 import { TenantBrandingForm } from "@/components/tenant-branding-form";
 import { TenantFeaturesForm } from "@/components/tenant-features-form";
+import { TenantWebsiteForm } from "@/components/tenant-website-form";
 import { canManageStaff, getSession } from "@/lib/auth";
 
 export default async function AdminSettingsPage() {
@@ -12,7 +13,7 @@ export default async function AdminSettingsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-10">
+    <div className="mx-auto max-w-3xl space-y-10">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Gym settings</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -29,6 +30,17 @@ export default async function AdminSettingsPage() {
           </p>
         </div>
         <TenantFeaturesForm />
+      </section>
+
+      <section className="space-y-4 border-t border-border pt-10">
+        <div>
+          <h2 className="text-lg font-semibold">Website integration</h2>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Embed your live class schedule on your gym website and control where
+            booking buttons send members.
+          </p>
+        </div>
+        <TenantWebsiteForm />
       </section>
 
       <section className="space-y-4 border-t border-border pt-10">

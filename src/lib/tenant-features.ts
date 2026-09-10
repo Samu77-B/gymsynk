@@ -2,6 +2,7 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { tenants } from "@/db/schema";
+import { resolvePublicBookUrl } from "@/lib/tenant-website";
 
 export type TenantFeatures = {
   memberships: boolean;
@@ -87,16 +88,7 @@ export function getPublicBookUrl(options: {
   appUrl: string;
   tenantSlug: string;
   features: TenantFeatures;
+  externalBookUrl?: string | null;
 }) {
-  const base = options.appUrl.replace(/\/$/, "");
-
-  if (options.features.memberships) {
-    return `${base}/join?tenant=${options.tenantSlug}`;
-  }
-
-  if (options.features.classBooking) {
-    return `${base}/login`;
-  }
-
-  return null;
+  return resolvePublicBookUrl(options);
 }

@@ -3,6 +3,7 @@
 import { format, parseISO } from "date-fns";
 import { useEffect, useState } from "react";
 
+import { AdminClassTypesView } from "@/components/admin-class-types-view";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -84,6 +85,7 @@ export function AdminScheduleView({
   const canManage = role === "owner" || role === "admin" || role === "trainer";
   const canPublish = role === "owner" || role === "admin";
   const canSetDuration = role === "owner" || role === "admin";
+  const canManageClassTypes = role === "owner" || role === "admin";
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [classes, setClasses] = useState<ClassOption[]>([]);
   const [trainers, setTrainers] = useState<TrainerOption[]>([]);
@@ -384,6 +386,10 @@ export function AdminScheduleView({
         <p className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
           {error}
         </p>
+      ) : null}
+
+      {canManageClassTypes ? (
+        <AdminClassTypesView onUpdated={loadData} />
       ) : null}
 
       {canPublish ? (

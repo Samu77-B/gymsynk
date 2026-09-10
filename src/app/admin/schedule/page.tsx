@@ -15,7 +15,7 @@ export default async function AdminSchedulePage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Class schedule</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Upcoming classes for {session!.tenantSlug}
+          Manage class types and upcoming sessions for {session!.tenantSlug}
         </p>
       </div>
       <AdminScheduleView role={session!.role} tenantSlug={session!.tenantSlug} />

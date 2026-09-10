@@ -56,6 +56,8 @@ async function main() {
     .values({
       name: "Reset",
       slug: "reset",
+      primaryColor: "#111111",
+      websiteUrl: "https://resetstudios.co.uk",
       featureMemberships: false,
       featureClassBooking: true,
       featureSessionPacks: false,

@@ -10,6 +10,7 @@ import {
 
 import { getDb } from "@/db";
 import { classSchedules, tenants } from "@/db/schema";
+import { resolveTenantPrimaryColor } from "@/lib/tenant-branding";
 import {
   getPublicBookUrl,
   resolveTenantFeatures,
@@ -41,11 +42,16 @@ export type PublicScheduleDay = {
   classes: PublicScheduleClass[];
 };
 
+export type PublicScheduleTenant = {
+  slug: string;
+  name: string;
+  logoUrl: string | null;
+  primaryColor: string;
+  websiteUrl: string | null;
+};
+
 export type PublicSchedulePayload = {
-  tenant: {
-    slug: string;
-    name: string;
-  };
+  tenant: PublicScheduleTenant;
   rangeStart: string;
   rangeEnd: string;
   days: PublicScheduleDay[];
@@ -149,6 +155,9 @@ export async function getPublicSchedule(options: {
     tenant: {
       slug: tenant.slug,
       name: tenant.name,
+      logoUrl: tenant.logoUrl,
+      primaryColor: resolveTenantPrimaryColor(tenant),
+      websiteUrl: tenant.websiteUrl,
     },
     rangeStart: rangeStart.toISOString(),
     rangeEnd: rangeEnd.toISOString(),
@@ -157,6 +166,7 @@ export async function getPublicSchedule(options: {
       appUrl: options.appUrl,
       tenantSlug: tenant.slug,
       features: resolveTenantFeatures(tenant),
+      externalBookUrl: tenant.externalBookUrl,
     }),
   };
 }

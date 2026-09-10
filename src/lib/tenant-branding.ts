@@ -18,6 +18,17 @@ const SLUG_PRESETS: Record<string, Partial<Pick<TenantBrand, "primaryColor">>> =
   reset: { primaryColor: "#111111" },
 };
 
+export function resolveTenantPrimaryColor(tenant: {
+  slug: string;
+  primaryColor: string | null;
+}) {
+  return (
+    tenant.primaryColor ??
+    SLUG_PRESETS[tenant.slug]?.primaryColor ??
+    GYMSYNK_PRIMARY
+  );
+}
+
 export async function getTenantBrand(slug: string): Promise<TenantBrand> {
   const tenant = await getDb().query.tenants.findFirst({
     where: eq(tenants.slug, slug),
@@ -38,15 +49,10 @@ export async function getTenantBrand(slug: string): Promise<TenantBrand> {
     };
   }
 
-  const preset = SLUG_PRESETS[slug];
-
   return {
     name: tenant.name,
     slug: tenant.slug,
     logoUrl: tenant.logoUrl,
-    primaryColor:
-      tenant.primaryColor ??
-      preset?.primaryColor ??
-      GYMSYNK_PRIMARY,
+    primaryColor: resolveTenantPrimaryColor(tenant),
   };
 }

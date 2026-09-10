@@ -1,10 +1,19 @@
 import { AuthShell } from "@/components/auth-shell";
 import { LoginForm } from "@/components/login-form";
 
-export default function LoginPage() {
+type PageProps = {
+  searchParams: Promise<{ tenant?: string; redirect?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: PageProps) {
+  const query = await searchParams;
+
   return (
     <AuthShell hideLoginLink>
-      <LoginForm />
+      <LoginForm
+        initialTenantSlug={query.tenant}
+        redirectTo={query.redirect}
+      />
     </AuthShell>
   );
 }

@@ -8,10 +8,24 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function LoginForm() {
+function safeRedirect(value: string | undefined) {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return "/";
+  }
+
+  return value;
+}
+
+export function LoginForm({
+  initialTenantSlug,
+  redirectTo,
+}: {
+  initialTenantSlug?: string;
+  redirectTo?: string;
+}) {
   const router = useRouter();
-  const [email, setEmail] = useState("owner@reset.gymsynk.net");
-  const [tenantSlug, setTenantSlug] = useState("reset");
+  const [email, setEmail] = useState("");
+  const [tenantSlug, setTenantSlug] = useState(initialTenantSlug ?? "reset");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -39,7 +53,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/");
+    router.push(safeRedirect(redirectTo));
     router.refresh();
   }
 

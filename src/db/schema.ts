@@ -64,6 +64,8 @@ export const tenants = pgTable("tenants", {
   featureMemberships: boolean("feature_memberships").notNull().default(true),
   featureClassBooking: boolean("feature_class_booking").notNull().default(true),
   featureSessionPacks: boolean("feature_session_packs").notNull().default(false),
+  websiteUrl: varchar("website_url", { length: 2048 }),
+  externalBookUrl: varchar("external_book_url", { length: 2048 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

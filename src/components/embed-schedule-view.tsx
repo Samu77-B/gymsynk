@@ -1,6 +1,7 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
+import Image from "next/image";
 import { useEffect, useMemo, useState } from "react";
 
 import {
@@ -9,6 +10,7 @@ import {
   type PublicScheduleDay,
   type PublicSchedulePayload,
 } from "@/lib/public-schedule";
+import { contrastTextColor } from "@/lib/tenant-website";
 
 function formatTimeRange(startTime: string, endTime: string) {
   return `${format(parseISO(startTime), "h:mm a")} – ${format(parseISO(endTime), "h:mm a")}`;
@@ -56,8 +58,23 @@ export function EmbedScheduleView({
 
   const bookUrl = bookUrlOverride || data?.bookUrl;
 
+  const brandStyle = useMemo(() => {
+    if (!data?.tenant.primaryColor) {
+      return undefined;
+    }
+
+    return {
+      "--embed-accent": data.tenant.primaryColor,
+      "--embed-accent-text": contrastTextColor(data.tenant.primaryColor),
+    } as React.CSSProperties;
+  }, [data?.tenant.primaryColor]);
+
   return (
-    <div className={`gymsynk-embed gymsynk-embed--${theme}`} data-theme={theme}>
+    <div
+      className={`gymsynk-embed gymsynk-embed--${theme}`}
+      data-theme={theme}
+      style={brandStyle}
+    >
       <style>{`
         .gymsynk-embed {
           --embed-bg: #faf8f4;
@@ -96,6 +113,18 @@ export function EmbedScheduleView({
         }
         .gymsynk-embed__header {
           margin-bottom: 1rem;
+        }
+        .gymsynk-embed__brand {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          margin-bottom: 0.75rem;
+        }
+        .gymsynk-embed__logo {
+          height: 2rem;
+          width: auto;
+          max-width: 8rem;
+          object-fit: contain;
         }
         .gymsynk-embed__title {
           font-size: 1.125rem;
@@ -213,9 +242,23 @@ export function EmbedScheduleView({
       `}</style>
 
       <div className="gymsynk-embed__header">
+        {data?.tenant.logoUrl ? (
+          <div className="gymsynk-embed__brand">
+            <Image
+              className="gymsynk-embed__logo"
+              src={data.tenant.logoUrl}
+              alt={data.tenant.name}
+              width={128}
+              height={32}
+              unoptimized
+            />
+          </div>
+        ) : null}
         <p className="gymsynk-embed__title">Weekly Class Schedule</p>
         <p className="gymsynk-embed__subtitle">
-          All classes run for 45 minutes. Live from GymSynk.
+          {data
+            ? `Live timetable for ${data.tenant.name}. All classes run for 45 minutes.`
+            : "Live from GymSynk."}
         </p>
       </div>
 

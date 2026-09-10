@@ -5,6 +5,7 @@
   var tenant = script.getAttribute("data-tenant") || "reset";
   var theme = script.getAttribute("data-theme") || "reset";
   var hideBook = script.getAttribute("data-hide-book") === "true";
+  var bookUrlOverride = script.getAttribute("data-book-url") || "";
   var targetId = script.getAttribute("data-target");
   var apiBase = (script.getAttribute("data-api-base") || "").replace(/\/$/, "");
 
@@ -23,7 +24,22 @@
     script.parentNode.insertBefore(mount, script);
   }
 
-  mount.innerHTML = "<p style=\"font-family:sans-serif;color:#666\">Loading schedule…</p>";
+  mount.innerHTML =
+    '<p style="font-family:sans-serif;color:#666">Loading schedule…</p>';
+
+  function contrastTextColor(hexColor) {
+    var hex = (hexColor || "").replace("#", "");
+    if (hex.length !== 6) {
+      return "#ffffff";
+    }
+
+    var red = parseInt(hex.slice(0, 2), 16);
+    var green = parseInt(hex.slice(2, 4), 16);
+    var blue = parseInt(hex.slice(4, 6), 16);
+    var luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
+
+    return luminance > 0.55 ? "#111111" : "#ffffff";
+  }
 
   fetch(apiBase + "/api/public/" + encodeURIComponent(tenant) + "/schedule")
     .then(function (response) {
@@ -36,6 +52,10 @@
     })
     .then(function (data) {
       var days = data.days || [];
+      var tenantInfo = data.tenant || {};
+      var accent = tenantInfo.primaryColor || "#111111";
+      var accentText = contrastTextColor(accent);
+      var bookUrl = bookUrlOverride || data.bookUrl;
       var dayOrder = [
         "Monday",
         "Tuesday",
@@ -47,7 +67,9 @@
       ];
       var jsDay = new Date().getDay();
       var activeDay =
-        dayOrder[jsDay === 0 ? 6 : jsDay - 1] || (days[0] && days[0].day) || "Monday";
+        dayOrder[jsDay === 0 ? 6 : jsDay - 1] ||
+        (days[0] && days[0].day) ||
+        "Monday";
 
       function classesForDay(dayName) {
         var entry = days.find(function (d) {
@@ -63,28 +85,94 @@
         });
       }
 
+      var bg = theme === "dark" ? "#111111" : "#f3efe6";
+      var text = theme === "dark" ? "#f5f5f5" : "#111111";
+      var muted = theme === "dark" ? "#aaaaaa" : "#5c5c5c";
+      var border = theme === "dark" ? "#333333" : "#ddd6c8";
+      var surface = theme === "dark" ? "#1a1a1a" : "#ffffff";
+
       var styles =
-        ".gs-schedule{font-family:ui-sans-serif,system-ui,sans-serif;background:#f3efe6;color:#111;padding:1rem}" +
+        ".gs-schedule{font-family:Montserrat,ui-sans-serif,system-ui,sans-serif;padding:1rem;box-sizing:border-box}" +
         ".gs-tabs{display:flex;flex-wrap:wrap;gap:.5rem;margin:0 0 1rem}" +
-        ".gs-tab{border:1px solid #ddd6c8;background:#fff;padding:.5rem .75rem;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}" +
-        ".gs-tab.is-active{background:#111;color:#fff;border-color:#111}" +
-        ".gs-panel{background:#fff;border:1px solid #ddd6c8;padding:1rem}" +
-        ".gs-item{display:flex;justify-content:space-between;gap:1rem;padding:.875rem 0;border-top:1px solid #ddd6c8}" +
+        ".gs-tab{border:1px solid " +
+        border +
+        ";background:" +
+        surface +
+        ";color:" +
+        text +
+        ";padding:.5rem .75rem;font-size:.75rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer}" +
+        ".gs-tab.is-active{background:" +
+        accent +
+        ";color:" +
+        accentText +
+        ";border-color:" +
+        accent +
+        "}" +
+        ".gs-panel{background:" +
+        surface +
+        ";border:1px solid " +
+        border +
+        ";padding:1rem}" +
+        ".gs-item{display:flex;justify-content:space-between;gap:1rem;padding:.875rem 0;border-top:1px solid " +
+        border +
+        "}" +
         ".gs-item:first-child{border-top:none;padding-top:0}" +
         ".gs-class{font-weight:700;text-transform:uppercase;font-size:.875rem}" +
-        ".gs-time{color:#5c5c5c;font-size:.8125rem;white-space:nowrap}" +
-        ".gs-book{display:inline-block;margin-top:1rem;background:#111;color:#fff;text-decoration:none;padding:.75rem 1.25rem;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}";
+        ".gs-time{color:" +
+        muted +
+        ";font-size:.8125rem;white-space:nowrap}" +
+        ".gs-book{display:inline-block;margin-top:1rem;background:" +
+        accent +
+        ";color:" +
+        accentText +
+        ";text-decoration:none;padding:.75rem 1.25rem;font-size:.75rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase}" +
+        ".gs-powered{margin-top:1.25rem;padding-top:.75rem;border-top:1px solid " +
+        border +
+        ";font-size:.6875rem;color:" +
+        muted +
+        ";text-align:center}" +
+        ".gs-powered a{color:" +
+        muted +
+        ";font-weight:600;text-decoration:none}";
 
       var root = document.createElement("div");
       root.className = "gs-schedule";
-      if (theme === "dark") {
-        root.style.background = "#111";
-        root.style.color = "#f5f5f5";
-      }
+      root.style.background = bg;
+      root.style.color = text;
 
       var styleEl = document.createElement("style");
       styleEl.textContent = styles;
       root.appendChild(styleEl);
+
+      if (tenantInfo.logoUrl) {
+        var logoWrap = document.createElement("div");
+        logoWrap.style.marginBottom = "0.75rem";
+        var logo = document.createElement("img");
+        logo.src = tenantInfo.logoUrl;
+        logo.alt = tenantInfo.name || tenant;
+        logo.style.height = "2rem";
+        logo.style.maxWidth = "8rem";
+        logo.style.objectFit = "contain";
+        logoWrap.appendChild(logo);
+        root.appendChild(logoWrap);
+      }
+
+      var heading = document.createElement("p");
+      heading.style.margin = "0 0 .25rem";
+      heading.style.fontWeight = "700";
+      heading.style.letterSpacing = "0.04em";
+      heading.style.textTransform = "uppercase";
+      heading.textContent = "Weekly Class Schedule";
+      root.appendChild(heading);
+
+      var subtitle = document.createElement("p");
+      subtitle.style.margin = "0 0 1rem";
+      subtitle.style.color = muted;
+      subtitle.style.fontSize = ".875rem";
+      subtitle.textContent = tenantInfo.name
+        ? "Live timetable for " + tenantInfo.name + "."
+        : "Live from GymSynk.";
+      root.appendChild(subtitle);
 
       var tabs = document.createElement("div");
       tabs.className = "gs-tabs";
@@ -95,17 +183,20 @@
       function renderPanel(dayName) {
         var items = classesForDay(dayName);
         panel.innerHTML =
-          "<p style=\"margin:0 0 .25rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase\">" +
+          '<p style="margin:0 0 .25rem;font-weight:700;letter-spacing:.05em;text-transform:uppercase">' +
           dayName +
           "</p>" +
-          "<p style=\"margin:0 0 1rem;color:#5c5c5c;font-size:.8125rem;text-transform:uppercase\">" +
+          '<p style="margin:0 0 1rem;color:' +
+          muted +
+          ';font-size:.8125rem;text-transform:uppercase">' +
           items.length +
           " class" +
           (items.length === 1 ? "" : "es") +
           "</p>";
 
         if (items.length === 0) {
-          panel.innerHTML += "<p style=\"color:#5c5c5c\">No classes scheduled.</p>";
+          panel.innerHTML +=
+            '<p style="color:' + muted + '">No classes scheduled.</p>';
           return;
         }
 
@@ -114,9 +205,9 @@
           var row = document.createElement("div");
           row.className = "gs-item";
           row.innerHTML =
-            "<span class=\"gs-class\">" +
+            '<span class="gs-class">' +
             item.classTitle +
-            "</span><span class=\"gs-time\">" +
+            '</span><span class="gs-time">' +
             formatTime(item.startTime) +
             " – " +
             formatTime(item.endTime) +
@@ -150,22 +241,28 @@
       root.appendChild(panel);
       renderPanel(activeDay);
 
-      if (!hideBook && data.bookUrl) {
+      if (!hideBook && bookUrl) {
         var book = document.createElement("a");
         book.className = "gs-book";
-        book.href = data.bookUrl;
+        book.href = bookUrl;
         book.target = "_top";
         book.rel = "noopener noreferrer";
         book.textContent = "Book a Session";
         root.appendChild(book);
       }
 
+      var powered = document.createElement("p");
+      powered.className = "gs-powered";
+      powered.innerHTML =
+        'Powered by <a href="https://gymsynk.net" target="_blank" rel="noopener noreferrer">GymSynk</a>';
+      root.appendChild(powered);
+
       mount.innerHTML = "";
       mount.appendChild(root);
     })
     .catch(function (error) {
       mount.innerHTML =
-        "<p style=\"font-family:sans-serif;color:#b00020\">" +
+        '<p style="font-family:sans-serif;color:#b00020">' +
         (error && error.message ? error.message : "Schedule unavailable") +
         "</p>";
     });

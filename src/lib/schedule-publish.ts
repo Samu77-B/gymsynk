@@ -7,6 +7,7 @@ import {
   buildResetScheduleInserts,
   resetClassInsertValues,
 } from "@/lib/reset-weekly-schedule";
+import { buildTenantEmbedUrls } from "@/lib/tenant-website";
 
 const WEEKS_AHEAD = 4;
 
@@ -161,10 +162,10 @@ async function publishClonedWeekSchedule(
 }
 
 function publicUrls(tenantSlug: string, appUrl: string) {
-  const base = appUrl.replace(/\/$/, "");
+  const embed = buildTenantEmbedUrls(appUrl, tenantSlug);
   return {
-    scheduleApi: `${base}/api/public/${tenantSlug}/schedule`,
-    embed: `${base}/embed/${tenantSlug}/schedule`,
+    scheduleApi: embed.scheduleApi,
+    embed: embed.embedPage,
   };
 }
 
