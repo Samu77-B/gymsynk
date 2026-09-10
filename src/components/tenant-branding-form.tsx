@@ -73,36 +73,50 @@ export function TenantBrandingForm() {
     setMessage(null);
     setError(null);
 
-    const formData = new FormData();
-    formData.set("primaryColor", primaryColor);
+    try {
+      const formData = new FormData();
+      formData.set("primaryColor", primaryColor);
 
-    if (logoFile) {
-      formData.set("logo", logoFile);
-    } else if (logoUrl.trim()) {
-      formData.set("logoUrl", logoUrl.trim());
-    } else {
-      formData.set("logoUrl", "");
+      if (logoFile) {
+        formData.set("logo", logoFile);
+      } else if (logoUrl.trim()) {
+        formData.set("logoUrl", logoUrl.trim());
+      } else {
+        formData.set("logoUrl", "");
+      }
+
+      const response = await fetch("/api/tenant/branding", {
+        method: "PATCH",
+        body: formData,
+      });
+
+      let json: { error?: string; branding?: Branding } = {};
+      try {
+        json = (await response.json()) as { error?: string; branding?: Branding };
+      } catch {
+        throw new Error("Unexpected server response. Please try again.");
+      }
+
+      if (!response.ok) {
+        setError(json.error ?? "Could not save branding");
+        return;
+      }
+
+      const data = json.branding as Branding;
+      setBranding(data);
+      setLogoUrl(data.logoUrl ?? "");
+      setLogoFile(null);
+      setMessage("Branding saved. Your dashboard will refresh with the new look.");
+      router.refresh();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error
+          ? submitError.message
+          : "Could not save branding",
+      );
+    } finally {
+      setSaving(false);
     }
-
-    const response = await fetch("/api/tenant/branding", {
-      method: "PATCH",
-      body: formData,
-    });
-
-    const json = await response.json();
-    setSaving(false);
-
-    if (!response.ok) {
-      setError(json.error ?? "Could not save branding");
-      return;
-    }
-
-    const data = json.branding as Branding;
-    setBranding(data);
-    setLogoUrl(data.logoUrl ?? "");
-    setLogoFile(null);
-    setMessage("Branding saved. Your dashboard will refresh with the new look.");
-    router.refresh();
   }
 
   if (loading) {
@@ -132,7 +146,10 @@ export function TenantBrandingForm() {
                 width={180}
                 height={48}
                 className="h-12 w-auto max-w-[180px] object-contain"
-                unoptimized={previewUrl.startsWith("blob:")}
+                unoptimized={
+                  previewUrl.startsWith("blob:") ||
+                  previewUrl.startsWith("data:")
+                }
               />
             ) : (
               <p className="text-sm text-muted-foreground">
@@ -153,7 +170,7 @@ export function TenantBrandingForm() {
               }}
             />
             <p className="text-xs text-muted-foreground">
-              PNG, JPG, WebP, or SVG · max 2 MB
+              PNG, JPG, WebP, or SVG · max 750 KB
             </p>
           </div>
 

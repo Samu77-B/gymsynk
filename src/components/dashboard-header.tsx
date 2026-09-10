@@ -36,6 +36,7 @@ export function DashboardHeader({
             width={120}
             height={28}
             className="h-6 w-auto max-w-[120px] object-contain"
+            unoptimized={brand.logoUrl.startsWith("data:")}
           />
         ) : (
           <span className="text-sm font-bold tracking-tight">{brand.name}</span>

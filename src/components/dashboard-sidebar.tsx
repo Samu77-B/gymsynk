@@ -86,6 +86,7 @@ function TenantLogo({ brand }: { brand: TenantBrand }) {
         width={140}
         height={36}
         className="h-8 w-auto max-w-[140px] object-contain object-left"
+        unoptimized={brand.logoUrl.startsWith("data:")}
       />
     );
   }
