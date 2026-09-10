@@ -151,12 +151,25 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border bg-neutral-950 text-white">
-        <div
-          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(230,0,0,0.12),transparent_55%)]"
+      <section className="relative overflow-hidden border-b border-border text-white">
+        <Image
+          src="/gymsynk-reception-blurred.png"
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover object-center"
           aria-hidden
         />
-        <div className="relative mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:py-32">
+        <div
+          className="pointer-events-none absolute inset-0 bg-neutral-950/72"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(230,0,0,0.18),transparent_55%)]"
+          aria-hidden
+        />
+        <div className="relative z-10 mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:py-32">
           <p className="mb-4 text-xs font-medium uppercase tracking-[0.25em] text-white/55">
             A Paradigm Studio product
           </p>
