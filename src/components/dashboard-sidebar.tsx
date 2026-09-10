@@ -8,6 +8,7 @@ import {
   ClipboardList,
   CreditCard,
   LayoutDashboard,
+  Settings,
   UserCog,
   Users,
 } from "lucide-react";
@@ -67,6 +68,12 @@ const navItems: NavItem[] = [
     label: "Book classes",
     icon: CalendarDays,
     roles: ["owner", "admin", "trainer", "member"],
+  },
+  {
+    href: "/admin/settings",
+    label: "Branding",
+    icon: Settings,
+    roles: ["owner", "admin"],
   },
 ];
 
@@ -135,16 +142,16 @@ export function DashboardSidebar({
               href={item.href}
               onClick={onNavigate}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg border-l-[3px] px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-brand/10 text-brand"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
+                  ? "border-[var(--nav-active-border)] bg-[var(--nav-active-bg)] text-foreground shadow-sm"
+                  : "border-transparent text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground",
               )}
             >
               <Icon
                 className={cn(
                   "size-4 shrink-0",
-                  isActive ? "text-brand" : "text-muted-foreground",
+                  isActive ? "text-[var(--brand-highlight)]" : "text-muted-foreground",
                 )}
               />
               {item.label}
