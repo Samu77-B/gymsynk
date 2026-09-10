@@ -67,7 +67,7 @@ export function EmbedScheduleView({
           --embed-border: #e8e4dc;
           --embed-accent: #111111;
           --embed-accent-text: #ffffff;
-          font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
+          font-family: var(--font-montserrat), "Montserrat", ui-sans-serif, system-ui, sans-serif;
           color: var(--embed-text);
           background: var(--embed-bg);
           padding: 1rem;
