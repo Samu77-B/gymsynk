@@ -151,7 +151,7 @@ export function LandingPage() {
       </header>
 
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border text-white">
+      <section className="relative flex min-h-screen min-h-dvh overflow-hidden border-b border-border text-white">
         <Image
           src="/gymsynk-reception-blurred.png"
           alt=""
@@ -169,7 +169,7 @@ export function LandingPage() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(230,0,0,0.18),transparent_55%)]"
           aria-hidden
         />
-        <div className="relative z-10 mx-auto max-w-6xl px-4 py-20 sm:px-6 sm:py-28 lg:py-32">
+        <div className="relative z-10 mx-auto flex min-h-screen min-h-dvh w-full max-w-6xl flex-col justify-center px-4 py-12 sm:px-6 sm:py-16">
           <p className="mb-4 text-xs font-medium uppercase tracking-[0.25em] text-white/55">
             A Paradigm Studio product
           </p>
