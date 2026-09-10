@@ -184,14 +184,6 @@ export function LandingPage() {
             >
               Open dashboard
             </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white"
-              render={<Link href="/join?tenant=reset" />}
-            >
-              Explore Reset demo
-            </Button>
           </div>
         </div>
       </section>
@@ -404,20 +396,13 @@ export function LandingPage() {
             Ready to run your gym on GymSynk?
           </h2>
           <p className="mx-auto mt-4 max-w-xl text-muted-foreground">
-            Browse the Reset demo gym, join as a member, or sign in to manage
-            schedule, staff, and members.
+            Sign in to manage schedule, staff, and members — or get in touch to
+            set up your gym on GymSynk.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Button
               size="lg"
               className="bg-brand hover:bg-brand/90"
-              render={<Link href="/join?tenant=reset" />}
-            >
-              Explore Reset demo
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
               render={<Link href="/login" />}
             >
               Sign in
