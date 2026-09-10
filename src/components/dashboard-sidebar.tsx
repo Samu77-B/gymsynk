@@ -93,9 +93,15 @@ function TenantLogo({ brand }: { brand: TenantBrand }) {
 export function DashboardSidebar({
   session,
   brand,
+  mobileOpen = false,
+  onNavigate,
+  className,
 }: {
   session: SessionUser;
   brand: TenantBrand;
+  mobileOpen?: boolean;
+  onNavigate?: () => void;
+  className?: string;
 }) {
   const pathname = usePathname();
   const visibleItems = navItems.filter((item) =>
@@ -103,7 +109,12 @@ export function DashboardSidebar({
   );
 
   return (
-    <aside className="flex w-60 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+    <aside
+      className={cn(
+        "flex shrink-0 flex-col border-r border-sidebar-border bg-sidebar shadow-xl lg:shadow-none",
+        className,
+      )}
+    >
       <div className="border-b border-sidebar-border px-5 py-5">
         <Link href="/" className="block">
           <TenantLogo brand={brand} />
@@ -122,6 +133,7 @@ export function DashboardSidebar({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 isActive

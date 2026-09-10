@@ -102,7 +102,7 @@ export function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col bg-background text-foreground">
       {/* Nav */}
-      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md">
+      <header className="sticky top-0 z-50 border-b border-border/60 bg-background/90 backdrop-blur-md dark:bg-neutral-950/90">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
           <Link href="/" className="flex shrink-0 items-center">
             <Image
@@ -110,7 +110,7 @@ export function LandingPage() {
               alt="GymSynk"
               width={148}
               height={32}
-              className="h-7 w-auto dark:invert-0 invert"
+              className="h-7 w-auto dark:invert-0"
               priority
             />
           </Link>
@@ -133,19 +133,14 @@ export function LandingPage() {
             </Link>
           </nav>
 
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <Button
-              variant="ghost"
-              size="sm"
-              className="hidden sm:inline-flex"
-              render={<Link href="/login" />}
+          <div className="ml-auto flex items-center gap-3">
+            <Link
+              href="/login"
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Sign in
-            </Button>
-            <Button size="sm" render={<Link href="/login" />}>
-              Open dashboard
-            </Button>
+            </Link>
+            <ThemeToggle />
           </div>
         </div>
       </header>
@@ -440,7 +435,7 @@ export function LandingPage() {
               alt="GymSynk"
               width={120}
               height={28}
-              className="h-6 w-auto invert dark:invert-0"
+              className="h-6 w-auto dark:invert-0"
             />
             <p className="mt-2 text-xs text-muted-foreground">
               SmartSynk · Paradigm Studio · gymsynk.net
