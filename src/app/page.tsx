@@ -3,6 +3,7 @@ import {
   ArrowUpRight,
   CalendarDays,
   ClipboardList,
+  Settings,
   TrendingUp,
   Users,
 } from "lucide-react";
@@ -13,8 +14,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
 import { getTenantBrand } from "@/lib/tenant-branding";
+import { getTenantFeatures, type TenantFeatureKey } from "@/lib/tenant-features";
 
-const quickLinks = [
+const quickLinks: Array<{
+  href: string;
+  title: string;
+  description: string;
+  icon: typeof CalendarDays;
+  roles: Array<"owner" | "admin" | "trainer" | "member">;
+  feature?: TenantFeatureKey;
+}> = [
   {
     href: "/admin/schedule",
     title: "Schedule",
@@ -42,6 +51,14 @@ const quickLinks = [
     description: "Reserve your next session.",
     icon: CalendarDays,
     roles: ["owner", "admin", "trainer", "member"],
+    feature: "classBooking",
+  },
+  {
+    href: "/admin/settings",
+    title: "Gym settings",
+    description: "Features, logo, and brand colours.",
+    icon: Settings,
+    roles: ["owner", "admin"],
   },
 ];
 
@@ -52,11 +69,23 @@ export default async function HomePage() {
     return <LandingPage />;
   }
 
-  const brand = await getTenantBrand(session.tenantSlug);
-  const links = quickLinks.filter((link) => link.roles.includes(session.role));
+  const [brand, features] = await Promise.all([
+    getTenantBrand(session.tenantSlug),
+    getTenantFeatures(session.tenantSlug),
+  ]);
+  const tenantFeatures = features ?? {
+    memberships: true,
+    classBooking: true,
+    sessionPacks: false,
+  };
+  const links = quickLinks.filter(
+    (link) =>
+      link.roles.includes(session.role) &&
+      (!link.feature || tenantFeatures[link.feature]),
+  );
 
   return (
-    <DashboardShell session={session} brand={brand}>
+    <DashboardShell session={session} brand={brand} features={tenantFeatures}>
       <div className="mx-auto max-w-6xl space-y-8">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">

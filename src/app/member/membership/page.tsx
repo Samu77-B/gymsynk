@@ -1,6 +1,17 @@
-import { MembershipView } from "@/components/membership-view";
+import { redirect } from "next/navigation";
 
-export default function MemberMembershipPage() {
+import { MembershipView } from "@/components/membership-view";
+import { getSession } from "@/lib/auth";
+import { getTenantFeatures } from "@/lib/tenant-features";
+
+export default async function MemberMembershipPage() {
+  const session = await getSession();
+  const features = await getTenantFeatures(session!.tenantSlug);
+
+  if (!features?.memberships) {
+    redirect("/");
+  }
+
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>

@@ -18,12 +18,14 @@ import { PoweredByGymSynk } from "@/components/powered-by-gymsynk";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
 import type { TenantBrand } from "@/lib/tenant-branding";
+import type { TenantFeatureKey, TenantFeatures } from "@/lib/tenant-features";
 
 type NavItem = {
   href: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
   roles: SessionUser["role"][];
+  feature?: TenantFeatureKey;
 };
 
 const navItems: NavItem[] = [
@@ -62,16 +64,18 @@ const navItems: NavItem[] = [
     label: "Membership",
     icon: CreditCard,
     roles: ["member", "owner", "admin"],
+    feature: "memberships",
   },
   {
     href: "/member/book",
     label: "Book classes",
     icon: CalendarDays,
     roles: ["owner", "admin", "trainer", "member"],
+    feature: "classBooking",
   },
   {
     href: "/admin/settings",
-    label: "Branding",
+    label: "Settings",
     icon: Settings,
     roles: ["owner", "admin"],
   },
@@ -101,19 +105,23 @@ function TenantLogo({ brand }: { brand: TenantBrand }) {
 export function DashboardSidebar({
   session,
   brand,
+  features,
   mobileOpen = false,
   onNavigate,
   className,
 }: {
   session: SessionUser;
   brand: TenantBrand;
+  features: TenantFeatures;
   mobileOpen?: boolean;
   onNavigate?: () => void;
   className?: string;
 }) {
   const pathname = usePathname();
-  const visibleItems = navItems.filter((item) =>
-    item.roles.includes(session.role),
+  const visibleItems = navItems.filter(
+    (item) =>
+      item.roles.includes(session.role) &&
+      (!item.feature || features[item.feature]),
   );
 
   return (

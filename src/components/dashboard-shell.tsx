@@ -10,14 +10,17 @@ import { TenantBrandStyles } from "@/components/tenant-brand-styles";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
 import type { TenantBrand } from "@/lib/tenant-branding";
+import type { TenantFeatures } from "@/lib/tenant-features";
 
 export function DashboardShell({
   session,
   brand,
+  features,
   children,
 }: {
   session: SessionUser;
   brand: TenantBrand;
+  features: TenantFeatures;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -56,6 +59,7 @@ export function DashboardShell({
         <DashboardSidebar
           session={session}
           brand={brand}
+          features={features}
           mobileOpen={mobileNavOpen}
           onNavigate={() => setMobileNavOpen(false)}
           className={cn(

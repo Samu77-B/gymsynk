@@ -61,6 +61,9 @@ export const tenants = pgTable("tenants", {
   slug: varchar("slug", { length: 100 }).notNull().unique(),
   logoUrl: text("logo_url"),
   primaryColor: varchar("primary_color", { length: 7 }),
+  featureMemberships: boolean("feature_memberships").notNull().default(true),
+  featureClassBooking: boolean("feature_class_booking").notNull().default(true),
+  featureSessionPacks: boolean("feature_session_packs").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

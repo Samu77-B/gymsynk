@@ -53,7 +53,13 @@ async function main() {
 
   const [tenant] = await db
     .insert(tenants)
-    .values({ name: "Reset", slug: "reset" })
+    .values({
+      name: "Reset",
+      slug: "reset",
+      featureMemberships: false,
+      featureClassBooking: true,
+      featureSessionPacks: false,
+    })
     .returning();
 
   const [owner, admin, trainer] = await db

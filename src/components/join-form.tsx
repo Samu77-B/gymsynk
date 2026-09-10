@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -24,6 +25,12 @@ type TenantInfo = {
   slug: string;
 };
 
+type TenantFeatures = {
+  memberships: boolean;
+  classBooking: boolean;
+  sessionPacks: boolean;
+};
+
 export function JoinForm({
   tenantSlug,
   cancelled,
@@ -32,6 +39,7 @@ export function JoinForm({
   cancelled?: boolean;
 }) {
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
+  const [features, setFeatures] = useState<TenantFeatures | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -53,6 +61,7 @@ export function JoinForm({
       }
 
       setTenant(data.tenant);
+      setFeatures(data.features ?? null);
       setPlans(data.plans ?? []);
       if (data.plans?.[0]) {
         setSelectedPlanId(data.plans[0].id);
@@ -97,6 +106,31 @@ export function JoinForm({
   }
 
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
+
+  if (features && !features.memberships) {
+    return (
+      <Card className="border-border/60 shadow-sm">
+        <CardHeader className="text-center">
+          <CardTitle>Join {tenant?.name ?? "the gym"}</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4 text-center">
+          <p className="text-sm text-muted-foreground">
+            Online membership signup isn&apos;t open yet for{" "}
+            {tenant?.name ?? "this gym"}. Log in if you already have an account,
+            or contact the gym to get started with class booking.
+          </p>
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+            <Button render={<Link href="/login" />}>Log in</Button>
+            {features.classBooking ? (
+              <Button variant="outline" render={<Link href="/login" />}>
+                Book classes after login
+              </Button>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <div className="mx-auto w-full max-w-2xl space-y-6">

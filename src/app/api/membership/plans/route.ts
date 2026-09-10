@@ -3,6 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { membershipPlans } from "@/db/schema";
 import { getDefaultTenantSlug, getTenantBySlug } from "@/lib/membership-provision";
+import { resolveTenantFeatures } from "@/lib/tenant-features";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -16,19 +17,24 @@ export async function GET(request: Request) {
 
   const db = getDb();
 
-  const plans = await db.query.membershipPlans.findMany({
-    where: and(
-      eq(membershipPlans.tenantId, tenant.id),
-      eq(membershipPlans.active, true),
-    ),
-    orderBy: [asc(membershipPlans.sortOrder)],
-  });
+  const features = resolveTenantFeatures(tenant);
+
+  const plans = features.memberships
+    ? await db.query.membershipPlans.findMany({
+        where: and(
+          eq(membershipPlans.tenantId, tenant.id),
+          eq(membershipPlans.active, true),
+        ),
+        orderBy: [asc(membershipPlans.sortOrder)],
+      })
+    : [];
 
   return Response.json({
     tenant: {
       name: tenant.name,
       slug: tenant.slug,
     },
+    features,
     plans: plans.map((plan) => ({
       id: plan.id,
       slug: plan.slug,

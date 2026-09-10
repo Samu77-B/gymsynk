@@ -10,6 +10,10 @@ import {
 
 import { getDb } from "@/db";
 import { classSchedules, tenants } from "@/db/schema";
+import {
+  getPublicBookUrl,
+  resolveTenantFeatures,
+} from "@/lib/tenant-features";
 
 const DAY_ORDER = [
   "Monday",
@@ -45,7 +49,7 @@ export type PublicSchedulePayload = {
   rangeStart: string;
   rangeEnd: string;
   days: PublicScheduleDay[];
-  bookUrl: string;
+  bookUrl: string | null;
 };
 
 function durationMinutes(start: Date, end: Date) {
@@ -149,7 +153,11 @@ export async function getPublicSchedule(options: {
     rangeStart: rangeStart.toISOString(),
     rangeEnd: rangeEnd.toISOString(),
     days,
-    bookUrl: `${options.appUrl.replace(/\/$/, "")}/join?tenant=${tenant.slug}`,
+    bookUrl: getPublicBookUrl({
+      appUrl: options.appUrl,
+      tenantSlug: tenant.slug,
+      features: resolveTenantFeatures(tenant),
+    }),
   };
 }
 

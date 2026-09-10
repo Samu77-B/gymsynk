@@ -9,6 +9,7 @@ import {
   getTenantBySlug,
 } from "@/lib/membership-provision";
 import { getAppUrl, getStripe } from "@/lib/stripe";
+import { resolveTenantFeatures } from "@/lib/tenant-features";
 
 const checkoutSchema = z.object({
   tenantSlug: z.string().min(1).optional(),
@@ -32,6 +33,10 @@ export async function POST(request: Request) {
 
   if (!tenant) {
     return jsonError("Gym not found", 404);
+  }
+
+  if (!resolveTenantFeatures(tenant).memberships) {
+    return jsonError("Online memberships are not enabled for this gym", 403);
   }
 
   const db = getDb();
