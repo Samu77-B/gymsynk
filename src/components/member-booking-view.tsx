@@ -57,13 +57,15 @@ export function MemberBookingView() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-lg space-y-4">
+    <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
       {message ? (
-        <p className="rounded-md border bg-muted px-3 py-2 text-sm">{message}</p>
+        <p className="rounded-md border bg-muted px-3 py-2 text-sm md:col-span-2">
+          {message}
+        </p>
       ) : null}
 
       {schedules.map((schedule) => (
-        <Card key={schedule.id}>
+        <Card key={schedule.id} className="flex h-full flex-col">
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between gap-3">
               <CardTitle className="text-lg">{schedule.classTitle}</CardTitle>
@@ -93,7 +95,7 @@ export function MemberBookingView() {
       ))}
 
       {schedules.length === 0 ? (
-        <p className="text-center text-sm text-muted-foreground">
+        <p className="text-center text-sm text-muted-foreground md:col-span-2">
           No upcoming classes in the next 7 days.
         </p>
       ) : null}
