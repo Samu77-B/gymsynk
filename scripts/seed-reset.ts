@@ -59,7 +59,7 @@ async function main() {
       slug: "reset",
       primaryColor: "#111111",
       websiteUrl: "https://resetstudios.co.uk",
-      featureMemberships: false,
+      featureMemberships: true,
       featureClassBooking: true,
       featureSessionPacks: true,
     })

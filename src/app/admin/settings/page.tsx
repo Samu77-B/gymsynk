@@ -25,8 +25,8 @@ export default async function AdminSettingsPage() {
         <div>
           <h2 className="text-lg font-semibold">Features</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Reset can run class booking only — turn memberships off until you are
-            ready to sell plans online.
+            Turn modules on or off for your gym. Reset has all features enabled
+            for platform testing.
           </p>
         </div>
         <TenantFeaturesForm />
