@@ -22,7 +22,7 @@ export default async function EmbedSchedulePage({
       : "reset";
 
   return (
-    <main>
+    <main className="m-0 p-0">
       <EmbedScheduleView
         tenant={tenant}
         theme={theme}

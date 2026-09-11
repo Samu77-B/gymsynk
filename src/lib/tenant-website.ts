@@ -63,7 +63,7 @@ export function buildTenantEmbedUrls(
   title="${tenantSlug} class schedule"
   width="100%"
   height="720"
-  style="border:0;background:transparent;"
+  style="border:0;background:#f3efe6;"
   loading="lazy"
 ></iframe>`;
 
@@ -80,8 +80,8 @@ export function buildTenantEmbedUrls(
   src="${packagesEmbedPage}"
   title="${tenantSlug} group training packages"
   width="100%"
-  height="900"
-  style="border:0;background:transparent;"
+  height="920"
+  style="border:0;background:#f3efe6;"
   loading="lazy"
 ></iframe>`;
 

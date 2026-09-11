@@ -22,7 +22,7 @@ export default async function EmbedPackagesPage({
       : "reset";
 
   return (
-    <main>
+    <main className="m-0 p-0">
       <EmbedPackagesView
         tenant={tenant}
         theme={theme}

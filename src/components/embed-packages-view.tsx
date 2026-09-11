@@ -110,7 +110,15 @@ export function EmbedPackagesView({
           color: var(--packages-text);
           background: var(--packages-bg);
           padding: 1rem;
+          min-height: 100%;
           box-sizing: border-box;
+        }
+        .gymsynk-packages--dark {
+          --packages-bg: #111111;
+          --packages-surface: #1a1a1a;
+          --packages-text: #f5f5f5;
+          --packages-muted: #aaaaaa;
+          --packages-border: #333333;
         }
         .gymsynk-packages *, .gymsynk-packages *::before, .gymsynk-packages *::after {
           box-sizing: border-box;
