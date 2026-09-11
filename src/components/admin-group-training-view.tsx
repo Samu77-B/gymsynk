@@ -51,30 +51,73 @@ type ClassRow = {
   trainingTierId: string | null;
 };
 
-const emptyTierForm = {
+type TierForm = {
+  name: string;
+  subtitle: string;
+  slug: string;
+  pricePerClass: string;
+  sortOrder: number;
+  active: boolean;
+};
+
+type PackForm = {
+  label: string;
+  price: string;
+  sessionCount: string;
+  isPayAsYouGo: boolean;
+  note: string;
+  sortOrder: number;
+};
+
+const emptyTierForm: TierForm = {
   name: "",
   subtitle: "",
   slug: "",
   pricePerClass: "10",
   sortOrder: 1,
+  active: true,
 };
 
-const emptyPackForm = {
+const emptyPackForm: PackForm = {
   label: "",
   price: "",
   sessionCount: "",
   isPayAsYouGo: false,
   note: "",
+  sortOrder: 1,
 };
+
+function tierToForm(tier: Tier): TierForm {
+  return {
+    name: tier.name,
+    subtitle: tier.subtitle ?? "",
+    slug: tier.slug,
+    pricePerClass: tier.pricePerClass,
+    sortOrder: tier.sortOrder,
+    active: tier.active,
+  };
+}
+
+function packToForm(pack: Pack): PackForm {
+  return {
+    label: pack.label,
+    price: pack.price,
+    sessionCount: pack.sessionCount?.toString() ?? "",
+    isPayAsYouGo: pack.isPayAsYouGo,
+    note: pack.note ?? "",
+    sortOrder: pack.sortOrder,
+  };
+}
 
 export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
   const [tiers, setTiers] = useState<Tier[]>([]);
   const [classRows, setClassRows] = useState<ClassRow[]>([]);
-  const [tierForm, setTierForm] = useState(emptyTierForm);
-  const [packForms, setPackForms] = useState<Record<string, typeof emptyPackForm>>(
-    {},
-  );
+  const [addTierForm, setAddTierForm] = useState<TierForm>(emptyTierForm);
   const [editTierId, setEditTierId] = useState<string | null>(null);
+  const [editTierForm, setEditTierForm] = useState<TierForm>(emptyTierForm);
+  const [editPackId, setEditPackId] = useState<string | null>(null);
+  const [editPackForm, setEditPackForm] = useState<PackForm>(emptyPackForm);
+  const [addPackForms, setAddPackForms] = useState<Record<string, PackForm>>({});
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -103,6 +146,19 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
     void loadData();
   }, []);
 
+  function startEditTier(tier: Tier) {
+    setEditTierId(tier.id);
+    setEditTierForm(tierToForm(tier));
+    setEditPackId(null);
+    setMessage(null);
+    setError(null);
+  }
+
+  function cancelEditTier() {
+    setEditTierId(null);
+    setEditTierForm(emptyTierForm);
+  }
+
   async function createTier(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setMessage(null);
@@ -112,10 +168,12 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        ...tierForm,
-        pricePerClass: Number(tierForm.pricePerClass),
-        sortOrder: Number(tierForm.sortOrder),
-        subtitle: tierForm.subtitle || null,
+        name: addTierForm.name,
+        subtitle: addTierForm.subtitle || null,
+        slug: addTierForm.slug,
+        pricePerClass: Number(addTierForm.pricePerClass),
+        sortOrder: addTierForm.sortOrder,
+        active: addTierForm.active,
       }),
     });
 
@@ -127,24 +185,28 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
     }
 
     setMessage(`${data.tier.name} created.`);
-    setTierForm({ ...emptyTierForm, sortOrder: tiers.length + 2 });
+    setAddTierForm({ ...emptyTierForm, sortOrder: tiers.length + 2 });
     await loadData();
   }
 
-  async function saveTier(tier: Tier) {
+  async function saveTier() {
+    if (!editTierId) {
+      return;
+    }
+
     setMessage(null);
     setError(null);
 
-    const response = await fetch(`/api/training-tiers/${tier.id}`, {
+    const response = await fetch(`/api/training-tiers/${editTierId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: tier.name,
-        subtitle: tier.subtitle,
-        slug: tier.slug,
-        pricePerClass: Number(tier.pricePerClass),
-        sortOrder: tier.sortOrder,
-        active: tier.active,
+        name: editTierForm.name,
+        subtitle: editTierForm.subtitle || null,
+        slug: editTierForm.slug,
+        pricePerClass: Number(editTierForm.pricePerClass),
+        sortOrder: editTierForm.sortOrder,
+        active: editTierForm.active,
       }),
     });
 
@@ -155,13 +217,43 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
       return;
     }
 
-    setMessage(`${tier.name} updated.`);
+    setMessage(`${editTierForm.name} updated.`);
     setEditTierId(null);
     await loadData();
   }
 
+  async function deleteTier(tier: Tier) {
+    if (
+      !window.confirm(
+        `Delete ${tier.name}? Pack options will be removed and classes unassigned.`,
+      )
+    ) {
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    const response = await fetch(`/api/training-tiers/${tier.id}`, {
+      method: "DELETE",
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error ?? "Could not delete tier");
+      return;
+    }
+
+    setMessage(`${tier.name} deleted.`);
+    if (editTierId === tier.id) {
+      cancelEditTier();
+    }
+    await loadData();
+  }
+
   async function addPack(tierId: string) {
-    const form = packForms[tierId] ?? emptyPackForm;
+    const form = addPackForms[tierId] ?? emptyPackForm;
     setMessage(null);
     setError(null);
 
@@ -175,6 +267,7 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
         sessionCount: form.isPayAsYouGo ? null : Number(form.sessionCount || 0),
         isPayAsYouGo: form.isPayAsYouGo,
         note: form.note || null,
+        sortOrder: form.sortOrder,
       }),
     });
 
@@ -186,7 +279,49 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
     }
 
     setMessage("Pack option added.");
-    setPackForms((current) => ({ ...current, [tierId]: emptyPackForm }));
+    setAddPackForms((current) => ({ ...current, [tierId]: emptyPackForm }));
+    await loadData();
+  }
+
+  function startEditPack(pack: Pack) {
+    setEditPackId(pack.id);
+    setEditPackForm(packToForm(pack));
+    setMessage(null);
+    setError(null);
+  }
+
+  async function savePack() {
+    if (!editPackId) {
+      return;
+    }
+
+    setMessage(null);
+    setError(null);
+
+    const response = await fetch(`/api/training-packs/${editPackId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        label: editPackForm.label,
+        price: Number(editPackForm.price),
+        sessionCount: editPackForm.isPayAsYouGo
+          ? null
+          : Number(editPackForm.sessionCount || 0),
+        isPayAsYouGo: editPackForm.isPayAsYouGo,
+        note: editPackForm.note || null,
+        sortOrder: editPackForm.sortOrder,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      setError(data.error ?? "Could not update pack");
+      return;
+    }
+
+    setMessage("Pack option updated.");
+    setEditPackId(null);
     await loadData();
   }
 
@@ -206,6 +341,9 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
     }
 
     setMessage("Pack option deleted.");
+    if (editPackId === pack.id) {
+      setEditPackId(null);
+    }
     await loadData();
   }
 
@@ -230,12 +368,6 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
     await loadData();
   }
 
-  function updateTierLocal(tierId: string, patch: Partial<Tier>) {
-    setTiers((current) =>
-      current.map((tier) => (tier.id === tierId ? { ...tier, ...patch } : tier)),
-    );
-  }
-
   return (
     <div className="space-y-6">
       {message ? (
@@ -253,8 +385,7 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <p className="text-muted-foreground">
-            Use a separate iframe for group training packages on the Reset site
-            (alongside the schedule embed).
+            Changes here update the live packages feed on your website.
           </p>
           <p>
             <span className="font-medium">Packages embed:</span>{" "}
@@ -278,51 +409,70 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
         <CardContent>
           <form className="grid gap-4 md:grid-cols-2" onSubmit={createTier}>
             <div className="space-y-2">
-              <Label htmlFor="tierName">Name</Label>
+              <Label htmlFor="addTierName">Name</Label>
               <Input
-                id="tierName"
-                value={tierForm.name}
-                onChange={(e) => setTierForm({ ...tierForm, name: e.target.value })}
+                id="addTierName"
+                value={addTierForm.name}
+                onChange={(e) =>
+                  setAddTierForm({ ...addTierForm, name: e.target.value })
+                }
                 placeholder="Tier 1"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tierSubtitle">Subtitle (optional)</Label>
+              <Label htmlFor="addTierSubtitle">Subtitle (optional)</Label>
               <Input
-                id="tierSubtitle"
-                value={tierForm.subtitle}
+                id="addTierSubtitle"
+                value={addTierForm.subtitle}
                 onChange={(e) =>
-                  setTierForm({ ...tierForm, subtitle: e.target.value })
+                  setAddTierForm({ ...addTierForm, subtitle: e.target.value })
                 }
                 placeholder="Hyrox Training"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tierSlug">Slug</Label>
+              <Label htmlFor="addTierSlug">Slug</Label>
               <Input
-                id="tierSlug"
-                value={tierForm.slug}
-                onChange={(e) => setTierForm({ ...tierForm, slug: e.target.value })}
+                id="addTierSlug"
+                value={addTierForm.slug}
+                onChange={(e) =>
+                  setAddTierForm({ ...addTierForm, slug: e.target.value })
+                }
                 placeholder="tier-1"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="tierPrice">Headline price per class (£)</Label>
+              <Label htmlFor="addTierPrice">Headline price per class (£)</Label>
               <Input
-                id="tierPrice"
+                id="addTierPrice"
                 type="number"
                 min={0}
                 step={0.01}
-                value={tierForm.pricePerClass}
+                value={addTierForm.pricePerClass}
                 onChange={(e) =>
-                  setTierForm({ ...tierForm, pricePerClass: e.target.value })
+                  setAddTierForm({ ...addTierForm, pricePerClass: e.target.value })
                 }
                 required
               />
             </div>
-            <div className="flex items-end md:col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="addTierSort">Display order</Label>
+              <Input
+                id="addTierSort"
+                type="number"
+                min={0}
+                value={addTierForm.sortOrder}
+                onChange={(e) =>
+                  setAddTierForm({
+                    ...addTierForm,
+                    sortOrder: Number(e.target.value),
+                  })
+                }
+              />
+            </div>
+            <div className="flex items-end">
               <Button type="submit">Add tier</Button>
             </div>
           </form>
@@ -337,45 +487,123 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
               {tier.subtitle ? (
                 <p className="mt-1 text-sm text-muted-foreground">{tier.subtitle}</p>
               ) : null}
+              {!tier.active ? (
+                <p className="mt-1 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Hidden from website
+                </p>
+              ) : null}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setEditTierId(editTierId === tier.id ? null : tier.id)}
-            >
-              {editTierId === tier.id ? "Done" : "Edit tier"}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {editTierId !== tier.id ? (
+                <Button variant="outline" size="sm" onClick={() => startEditTier(tier)}>
+                  Edit tier
+                </Button>
+              ) : null}
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={() => void deleteTier(tier)}
+              >
+                Delete
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-6">
             {editTierId === tier.id ? (
-              <div className="grid gap-3 md:grid-cols-2">
-                <Input
-                  value={tier.name}
-                  onChange={(e) => updateTierLocal(tier.id, { name: e.target.value })}
-                />
-                <Input
-                  value={tier.subtitle ?? ""}
-                  placeholder="Subtitle"
-                  onChange={(e) =>
-                    updateTierLocal(tier.id, { subtitle: e.target.value || null })
-                  }
-                />
-                <Input
-                  type="number"
-                  step={0.01}
-                  value={tier.pricePerClass}
-                  onChange={(e) =>
-                    updateTierLocal(tier.id, { pricePerClass: e.target.value })
-                  }
-                />
-                <Button type="button" onClick={() => void saveTier(tier)}>
-                  Save tier
-                </Button>
-              </div>
+              <form
+                className="grid gap-4 rounded-md border p-4 md:grid-cols-2"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void saveTier();
+                }}
+              >
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor={`editName-${tier.id}`}>Tier name</Label>
+                  <Input
+                    id={`editName-${tier.id}`}
+                    value={editTierForm.name}
+                    onChange={(e) =>
+                      setEditTierForm({ ...editTierForm, name: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`editSubtitle-${tier.id}`}>Subtitle</Label>
+                  <Input
+                    id={`editSubtitle-${tier.id}`}
+                    value={editTierForm.subtitle}
+                    onChange={(e) =>
+                      setEditTierForm({ ...editTierForm, subtitle: e.target.value })
+                    }
+                    placeholder="Optional — e.g. Hyrox Training"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`editSlug-${tier.id}`}>Slug</Label>
+                  <Input
+                    id={`editSlug-${tier.id}`}
+                    value={editTierForm.slug}
+                    onChange={(e) =>
+                      setEditTierForm({ ...editTierForm, slug: e.target.value })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`editPrice-${tier.id}`}>Headline price per class (£)</Label>
+                  <Input
+                    id={`editPrice-${tier.id}`}
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={editTierForm.pricePerClass}
+                    onChange={(e) =>
+                      setEditTierForm({
+                        ...editTierForm,
+                        pricePerClass: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor={`editSort-${tier.id}`}>Display order</Label>
+                  <Input
+                    id={`editSort-${tier.id}`}
+                    type="number"
+                    min={0}
+                    value={editTierForm.sortOrder}
+                    onChange={(e) =>
+                      setEditTierForm({
+                        ...editTierForm,
+                        sortOrder: Number(e.target.value),
+                      })
+                    }
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm md:col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={editTierForm.active}
+                    onChange={(e) =>
+                      setEditTierForm({ ...editTierForm, active: e.target.checked })
+                    }
+                  />
+                  Show on website embed
+                </label>
+                <div className="flex flex-wrap gap-2 md:col-span-2">
+                  <Button type="submit">Save tier</Button>
+                  <Button type="button" variant="outline" onClick={cancelEditTier}>
+                    Cancel
+                  </Button>
+                </div>
+              </form>
             ) : (
               <p className="text-sm text-muted-foreground">
                 £{Number(tier.pricePerClass).toFixed(2)} per class ·{" "}
-                {tier.classes.map((item) => item.title).join(", ") || "No classes assigned"}
+                {tier.classes.map((item) => item.title).join(", ") ||
+                  "No classes assigned"}
               </p>
             )}
 
@@ -401,13 +629,22 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
                         {pack.note ?? "—"}
                       </TableCell>
                       <TableCell>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => void deletePack(pack)}
-                        >
-                          Delete
-                        </Button>
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => startEditPack(pack)}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => void deletePack(pack)}
+                          >
+                            Delete
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -415,15 +652,123 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
               </Table>
             </div>
 
+            {editPackId &&
+            tier.packs.some((pack) => pack.id === editPackId) ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-base">Edit pack option</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <form
+                    className="grid gap-4 md:grid-cols-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void savePack();
+                    }}
+                  >
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="editPackLabel">Label</Label>
+                      <Input
+                        id="editPackLabel"
+                        value={editPackForm.label}
+                        onChange={(e) =>
+                          setEditPackForm({ ...editPackForm, label: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editPackPrice">Price (£)</Label>
+                      <Input
+                        id="editPackPrice"
+                        type="number"
+                        min={0}
+                        step={0.01}
+                        value={editPackForm.price}
+                        onChange={(e) =>
+                          setEditPackForm({ ...editPackForm, price: e.target.value })
+                        }
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editPackSessions">Sessions per month</Label>
+                      <Input
+                        id="editPackSessions"
+                        type="number"
+                        min={1}
+                        disabled={editPackForm.isPayAsYouGo}
+                        value={editPackForm.sessionCount}
+                        onChange={(e) =>
+                          setEditPackForm({
+                            ...editPackForm,
+                            sessionCount: e.target.value,
+                          })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="editPackNote">Note</Label>
+                      <Input
+                        id="editPackNote"
+                        value={editPackForm.note}
+                        onChange={(e) =>
+                          setEditPackForm({ ...editPackForm, note: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="editPackSort">Display order</Label>
+                      <Input
+                        id="editPackSort"
+                        type="number"
+                        min={0}
+                        value={editPackForm.sortOrder}
+                        onChange={(e) =>
+                          setEditPackForm({
+                            ...editPackForm,
+                            sortOrder: Number(e.target.value),
+                          })
+                        }
+                      />
+                    </div>
+                    <label className="flex items-center gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={editPackForm.isPayAsYouGo}
+                        onChange={(e) =>
+                          setEditPackForm({
+                            ...editPackForm,
+                            isPayAsYouGo: e.target.checked,
+                          })
+                        }
+                      />
+                      Pay as you go
+                    </label>
+                    <div className="flex flex-wrap gap-2 md:col-span-2">
+                      <Button type="submit">Save pack</Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setEditPackId(null)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                </CardContent>
+              </Card>
+            ) : null}
+
             <div className="grid gap-3 rounded-md border p-4 md:grid-cols-2">
               <div className="space-y-2 md:col-span-2">
                 <Label>Add pack option</Label>
               </div>
               <Input
                 placeholder="4 Sessions / Month"
-                value={packForms[tier.id]?.label ?? ""}
+                value={addPackForms[tier.id]?.label ?? ""}
                 onChange={(e) =>
-                  setPackForms((current) => ({
+                  setAddPackForms((current) => ({
                     ...current,
                     [tier.id]: {
                       ...(current[tier.id] ?? emptyPackForm),
@@ -436,9 +781,9 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
                 type="number"
                 step={0.01}
                 placeholder="Price"
-                value={packForms[tier.id]?.price ?? ""}
+                value={addPackForms[tier.id]?.price ?? ""}
                 onChange={(e) =>
-                  setPackForms((current) => ({
+                  setAddPackForms((current) => ({
                     ...current,
                     [tier.id]: {
                       ...(current[tier.id] ?? emptyPackForm),
@@ -450,10 +795,10 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
               <Input
                 type="number"
                 placeholder="Sessions (leave blank for PAYG)"
-                disabled={packForms[tier.id]?.isPayAsYouGo}
-                value={packForms[tier.id]?.sessionCount ?? ""}
+                disabled={addPackForms[tier.id]?.isPayAsYouGo}
+                value={addPackForms[tier.id]?.sessionCount ?? ""}
                 onChange={(e) =>
-                  setPackForms((current) => ({
+                  setAddPackForms((current) => ({
                     ...current,
                     [tier.id]: {
                       ...(current[tier.id] ?? emptyPackForm),
@@ -464,9 +809,9 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
               />
               <Input
                 placeholder="Note (optional)"
-                value={packForms[tier.id]?.note ?? ""}
+                value={addPackForms[tier.id]?.note ?? ""}
                 onChange={(e) =>
-                  setPackForms((current) => ({
+                  setAddPackForms((current) => ({
                     ...current,
                     [tier.id]: {
                       ...(current[tier.id] ?? emptyPackForm),
@@ -478,9 +823,9 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
               <label className="flex items-center gap-2 text-sm md:col-span-2">
                 <input
                   type="checkbox"
-                  checked={packForms[tier.id]?.isPayAsYouGo ?? false}
+                  checked={addPackForms[tier.id]?.isPayAsYouGo ?? false}
                   onChange={(e) =>
-                    setPackForms((current) => ({
+                    setAddPackForms((current) => ({
                       ...current,
                       [tier.id]: {
                         ...(current[tier.id] ?? emptyPackForm),
@@ -523,15 +868,15 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
                       }
                       items={[
                         { value: "", label: "Unassigned" },
-                        ...tiers.map((tier) => ({
-                          value: tier.id,
-                          label: tier.name,
+                        ...tiers.map((t) => ({
+                          value: t.id,
+                          label: t.name,
                         })),
                       ]}
                     >
                       <SelectTrigger className="w-full max-w-xs">
                         <SelectValue placeholder="Unassigned">
-                          {tiers.find((tier) => tier.id === row.trainingTierId)?.name ??
+                          {tiers.find((t) => t.id === row.trainingTierId)?.name ??
                             "Unassigned"}
                         </SelectValue>
                       </SelectTrigger>
@@ -539,9 +884,9 @@ export function AdminGroupTrainingView({ tenantSlug }: { tenantSlug: string }) {
                         <SelectItem value="" label="Unassigned">
                           Unassigned
                         </SelectItem>
-                        {tiers.map((tier) => (
-                          <SelectItem key={tier.id} value={tier.id} label={tier.name}>
-                            {tier.name}
+                        {tiers.map((t) => (
+                          <SelectItem key={t.id} value={t.id} label={t.name}>
+                            {t.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
