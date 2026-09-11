@@ -31,6 +31,7 @@ function serializeClass(row: typeof classes.$inferSelect) {
     capacity: row.capacity,
     durationMinutes: row.durationMinutes,
     price: row.price,
+    trainingTierId: row.trainingTierId,
   };
 }
 

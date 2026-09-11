@@ -20,6 +20,15 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      {
+        source: "/embed/:tenant/packages",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value: "frame-ancestors *",
+          },
+        ],
+      },
     ];
   },
 };

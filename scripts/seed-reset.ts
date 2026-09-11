@@ -13,6 +13,7 @@ import {
   tenants,
   users,
 } from "../src/db/schema";
+import { seedResetGroupTraining } from "../src/lib/reset-group-training";
 import {
   buildResetScheduleInserts,
   resetClassInsertValues,
@@ -60,7 +61,7 @@ async function main() {
       websiteUrl: "https://resetstudios.co.uk",
       featureMemberships: false,
       featureClassBooking: true,
-      featureSessionPacks: false,
+      featureSessionPacks: true,
     })
     .returning();
 
@@ -141,6 +142,8 @@ async function main() {
   });
 
   await db.insert(classSchedules).values(scheduleRows);
+
+  await seedResetGroupTraining(tenant.id, classIdByTitle);
 
   await db.insert(staffShifts).values([
     {

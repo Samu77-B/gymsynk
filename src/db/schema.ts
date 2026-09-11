@@ -93,11 +93,50 @@ export const users = pgTable(
   ],
 );
 
+export const trainingTiers = pgTable(
+  "training_tiers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 255 }).notNull(),
+    subtitle: varchar("subtitle", { length: 255 }),
+    slug: varchar("slug", { length: 50 }).notNull(),
+    pricePerClass: decimal("price_per_class", { precision: 10, scale: 2 }).notNull(),
+    sortOrder: integer("sort_order").notNull().default(0),
+    active: boolean("active").notNull().default(true),
+  },
+  (table) => [
+    uniqueIndex("training_tiers_tenant_slug_idx").on(table.tenantId, table.slug),
+  ],
+);
+
+export const trainingPackOptions = pgTable("training_pack_options", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .references(() => tenants.id, { onDelete: "cascade" }),
+  tierId: uuid("tier_id")
+    .notNull()
+    .references(() => trainingTiers.id, { onDelete: "cascade" }),
+  label: varchar("label", { length: 255 }).notNull(),
+  sessionCount: integer("session_count"),
+  price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+  isPayAsYouGo: boolean("is_pay_as_you_go").notNull().default(false),
+  note: text("note"),
+  sortOrder: integer("sort_order").notNull().default(0),
+  active: boolean("active").notNull().default(true),
+});
+
 export const classes = pgTable("classes", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id")
     .notNull()
     .references(() => tenants.id, { onDelete: "cascade" }),
+  trainingTierId: uuid("training_tier_id").references(() => trainingTiers.id, {
+    onDelete: "set null",
+  }),
   title: varchar("title", { length: 255 }).notNull(),
   description: text("description"),
   capacity: integer("capacity").notNull().default(15),
@@ -284,7 +323,32 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   membershipPlans: many(membershipPlans),
   memberships: many(memberships),
   memberProfiles: many(memberProfiles),
+  trainingTiers: many(trainingTiers),
+  trainingPackOptions: many(trainingPackOptions),
 }));
+
+export const trainingTiersRelations = relations(trainingTiers, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [trainingTiers.tenantId],
+    references: [tenants.id],
+  }),
+  packs: many(trainingPackOptions),
+  classes: many(classes),
+}));
+
+export const trainingPackOptionsRelations = relations(
+  trainingPackOptions,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [trainingPackOptions.tenantId],
+      references: [tenants.id],
+    }),
+    tier: one(trainingTiers, {
+      fields: [trainingPackOptions.tierId],
+      references: [trainingTiers.id],
+    }),
+  }),
+);
 
 export const usersRelations = relations(users, ({ one, many }) => ({
   tenant: one(tenants, {
@@ -306,6 +370,10 @@ export const classesRelations = relations(classes, ({ one, many }) => ({
   tenant: one(tenants, {
     fields: [classes.tenantId],
     references: [tenants.id],
+  }),
+  trainingTier: one(trainingTiers, {
+    fields: [classes.trainingTierId],
+    references: [trainingTiers.id],
   }),
   schedules: many(classSchedules),
 }));

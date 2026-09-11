@@ -8,6 +8,7 @@ import {
   ClipboardList,
   CreditCard,
   LayoutDashboard,
+  Package,
   Settings,
   UserCog,
   Users,
@@ -58,6 +59,13 @@ const navItems: NavItem[] = [
     label: "Staff roster",
     icon: ClipboardList,
     roles: ["owner", "admin"],
+  },
+  {
+    href: "/admin/group-training",
+    label: "Group training",
+    icon: Package,
+    roles: ["owner", "admin"],
+    feature: "sessionPacks",
   },
   {
     href: "/member/membership",

@@ -10,6 +10,9 @@ export type TenantEmbedUrls = {
   embedPage: string;
   iframeSnippet: string;
   scriptSnippet: string;
+  packagesApi: string;
+  packagesEmbedPage: string;
+  packagesIframeSnippet: string;
 };
 
 function normalizeUrl(value: string | null | undefined) {
@@ -52,6 +55,8 @@ export function buildTenantEmbedUrls(
   const mountId = options?.mountId ?? `${tenantSlug}-schedule`;
   const embedPage = `${base}/embed/${tenantSlug}/schedule?theme=${theme}`;
   const scheduleApi = `${base}/api/public/${tenantSlug}/schedule`;
+  const packagesEmbedPage = `${base}/embed/${tenantSlug}/packages?theme=${theme}`;
+  const packagesApi = `${base}/api/public/${tenantSlug}/packages`;
 
   const iframeSnippet = `<iframe
   src="${embedPage}"
@@ -71,11 +76,23 @@ export function buildTenantEmbedUrls(
   data-api-base="${base}"
 ></script>`;
 
+  const packagesIframeSnippet = `<iframe
+  src="${packagesEmbedPage}"
+  title="${tenantSlug} group training packages"
+  width="100%"
+  height="900"
+  style="border:0;background:transparent;"
+  loading="lazy"
+></iframe>`;
+
   return {
     scheduleApi,
     embedPage,
     iframeSnippet,
     scriptSnippet,
+    packagesApi,
+    packagesEmbedPage,
+    packagesIframeSnippet,
   } satisfies TenantEmbedUrls;
 }
 

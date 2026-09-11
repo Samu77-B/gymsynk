@@ -2,7 +2,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb } from "@/db";
-import { classes, classSchedules } from "@/db/schema";
+import { classes, classSchedules, trainingTiers } from "@/db/schema";
 import { jsonError, parseJson } from "@/lib/api";
 import {
   canManageClasses,
@@ -17,6 +17,7 @@ const updateClassSchema = z.object({
   capacity: z.coerce.number().int().min(1).max(500).optional(),
   durationMinutes: z.coerce.number().int().min(5).max(480).optional(),
   price: z.coerce.number().min(0).max(99999).optional(),
+  trainingTierId: z.string().uuid().optional().nullable(),
 });
 
 type RouteContext = {
@@ -35,6 +36,7 @@ function serializeClass(row: typeof classes.$inferSelect) {
     capacity: row.capacity,
     durationMinutes: row.durationMinutes,
     price: row.price,
+    trainingTierId: row.trainingTierId,
   };
 }
 
@@ -87,6 +89,19 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
   }
 
+  if (parsed.data.trainingTierId) {
+    const trainingTier = await db.query.trainingTiers.findFirst({
+      where: and(
+        eq(trainingTiers.id, parsed.data.trainingTierId),
+        eq(trainingTiers.tenantId, session.tenantId),
+      ),
+    });
+
+    if (!trainingTier) {
+      return jsonError("Training tier not found", 404);
+    }
+  }
+
   const [updated] = await db
     .update(classes)
     .set(
@@ -102,6 +117,10 @@ export async function PATCH(request: Request, context: RouteContext) {
           price:
             parsed.data.price !== undefined
               ? formatPrice(parsed.data.price)
+              : undefined,
+          trainingTierId:
+            parsed.data.trainingTierId !== undefined
+              ? parsed.data.trainingTierId
               : undefined,
         }).filter(([, value]) => value !== undefined),
       ),

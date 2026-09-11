@@ -203,8 +203,12 @@ export function TenantWebsiteForm() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <CopyBlock label="Iframe embed (easiest)" code={embed.iframeSnippet} />
-            <CopyBlock label="JavaScript embed" code={embed.scriptSnippet} />
+            <CopyBlock label="Schedule iframe" code={embed.iframeSnippet} />
+            <CopyBlock label="Schedule JavaScript embed" code={embed.scriptSnippet} />
+            <CopyBlock
+              label="Group training packages iframe"
+              code={embed.packagesIframeSnippet}
+            />
             <div className="space-y-1 text-sm">
               <p>
                 <span className="font-medium">Public schedule API:</span>{" "}
@@ -218,7 +222,7 @@ export function TenantWebsiteForm() {
                 </a>
               </p>
               <p>
-                <span className="font-medium">Preview embed:</span>{" "}
+                <span className="font-medium">Schedule preview:</span>{" "}
                 <a
                   className="break-all underline"
                   href={embed.embedPage}
@@ -226,6 +230,28 @@ export function TenantWebsiteForm() {
                   rel="noreferrer"
                 >
                   {embed.embedPage}
+                </a>
+              </p>
+              <p>
+                <span className="font-medium">Packages API:</span>{" "}
+                <a
+                  className="break-all underline"
+                  href={embed.packagesApi}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {embed.packagesApi}
+                </a>
+              </p>
+              <p>
+                <span className="font-medium">Packages preview:</span>{" "}
+                <a
+                  className="break-all underline"
+                  href={embed.packagesEmbedPage}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {embed.packagesEmbedPage}
                 </a>
               </p>
             </div>

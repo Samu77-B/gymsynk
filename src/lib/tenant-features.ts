@@ -27,10 +27,9 @@ export const TENANT_FEATURE_LABELS: Record<
       "Members and staff can book scheduled classes from the dashboard.",
   },
   sessionPacks: {
-    title: "Session packs & tiers",
+    title: "Group training & packs",
     description:
-      "Tiered class packs, pay-as-you-go, and credit-based booking (Reset-style pricing).",
-    comingSoon: true,
+      "Tiered class packs on your website, pay-as-you-go options, and class-to-tier assignment.",
   },
 };
 
