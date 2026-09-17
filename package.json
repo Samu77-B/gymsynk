@@ -14,6 +14,7 @@
     "db:sync-reset-schedule": "tsx scripts/sync-reset-schedule.ts",
     "db:seed-reset-group-training": "tsx scripts/seed-reset-group-training.ts",
     "db:enable-reset-features": "tsx scripts/enable-reset-features.ts",
+    "db:set-reset-staff-passwords": "tsx scripts/set-reset-staff-passwords.ts",
     "db:setup": "tsx scripts/setup.ts"
   },
   "dependencies": {

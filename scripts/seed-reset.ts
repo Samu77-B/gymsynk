@@ -13,6 +13,7 @@ import {
   tenants,
   users,
 } from "../src/db/schema";
+import { hashPassword, resolveSeedStaffPassword } from "../src/lib/password";
 import { seedResetGroupTraining } from "../src/lib/reset-group-training";
 import {
   buildResetScheduleInserts,
@@ -65,6 +66,9 @@ async function main() {
     })
     .returning();
 
+  const staffPassword = resolveSeedStaffPassword();
+  const staffPasswordHash = await hashPassword(staffPassword);
+
   const [owner, admin, trainer] = await db
     .insert(users)
     .values([
@@ -73,18 +77,21 @@ async function main() {
         fullName: "Reset Owner",
         email: "owner@reset.gymsynk.net",
         role: "owner",
+        passwordHash: staffPasswordHash,
       },
       {
         tenantId: tenant.id,
         fullName: "Reset Admin",
         email: "admin@reset.gymsynk.net",
         role: "admin",
+        passwordHash: staffPasswordHash,
       },
       {
         tenantId: tenant.id,
         fullName: "Reset Trainer",
         email: "trainer@reset.gymsynk.net",
         role: "trainer",
+        passwordHash: staffPasswordHash,
       },
     ])
     .returning();
@@ -170,6 +177,10 @@ async function main() {
   console.log("  owner@reset.gymsynk.net");
   console.log("  admin@reset.gymsynk.net");
   console.log("  trainer@reset.gymsynk.net");
+  console.log("");
+  console.log("Staff password (all three accounts):");
+  console.log(`  ${staffPassword}`);
+  console.log("  Override with SEED_STAFF_PASSWORD in .env.local");
   console.log("");
   console.log("Public join URL: /join?tenant=reset");
   console.log("");

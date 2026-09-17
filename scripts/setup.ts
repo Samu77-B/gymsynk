@@ -41,6 +41,7 @@ async function main() {
   console.log("Setup complete. You can log in with:");
   console.log("  Gym slug: demo-gym");
   console.log("  Email:    owner@demo.gymsynk.net");
+  console.log("  Password: SEED_STAFF_PASSWORD from .env.local, or Reset-GymSynk-2026");
 }
 
 main().catch((error) => {

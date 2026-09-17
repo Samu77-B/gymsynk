@@ -80,6 +80,7 @@ export const users = pgTable(
     email: varchar("email", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
     role: userRoleEnum("role").notNull(),
+    passwordHash: text("password_hash"),
     stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
     isActive: boolean("is_active").notNull().default(true),
     bio: text("bio"),

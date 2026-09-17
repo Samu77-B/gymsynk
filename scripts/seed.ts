@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/neon-http";
 import { neon } from "@neondatabase/serverless";
 
 import * as schema from "../src/db/schema";
+import { hashPassword, resolveSeedStaffPassword } from "../src/lib/password";
 import {
   bookings,
   classes,
@@ -45,6 +46,9 @@ async function main() {
     .values({ name: "Demo Gym", slug: "demo-gym" })
     .returning();
 
+  const staffPassword = resolveSeedStaffPassword();
+  const staffPasswordHash = await hashPassword(staffPassword);
+
   const [owner, admin, trainer, member] = await db
     .insert(users)
     .values([
@@ -53,18 +57,21 @@ async function main() {
         fullName: "Alex Owner",
         email: "owner@demo.gymsynk.net",
         role: "owner",
+        passwordHash: staffPasswordHash,
       },
       {
         tenantId: tenant.id,
         fullName: "Sam Admin",
         email: "admin@demo.gymsynk.net",
         role: "admin",
+        passwordHash: staffPasswordHash,
       },
       {
         tenantId: tenant.id,
         fullName: "Taylor Trainer",
         email: "trainer@demo.gymsynk.net",
         role: "trainer",
+        passwordHash: staffPasswordHash,
       },
       {
         tenantId: tenant.id,
@@ -170,6 +177,9 @@ async function main() {
   console.log("  admin@demo.gymsynk.net");
   console.log("  trainer@demo.gymsynk.net");
   console.log("  member@demo.gymsynk.net");
+  console.log("");
+  console.log("Staff password (owner, admin, trainer):");
+  console.log(`  ${staffPassword}`);
 }
 
 main().catch((error) => {
