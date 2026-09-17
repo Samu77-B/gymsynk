@@ -72,7 +72,7 @@ export function MemberBookingView() {
               <Badge variant="secondary">{schedule.status}</Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-3">
+          <CardContent className="flex flex-1 flex-col justify-between space-y-3">
             <p className="text-sm text-muted-foreground">
               {format(parseISO(schedule.startTime), "EEE d MMM · HH:mm")} –{" "}
               {format(parseISO(schedule.endTime), "HH:mm")}
