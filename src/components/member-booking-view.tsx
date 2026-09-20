@@ -1,7 +1,7 @@
 "use client";
 
 import { format, parseISO } from "date-fns";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,45 +15,94 @@ type Schedule = {
   endTime: string;
   price: string;
   spotsLeft: number;
+  waitlistCount: number;
   status: string;
+};
+
+type Booking = {
+  id: string;
+  scheduleId: string;
+  bookingStatus: "confirmed" | "waitlisted" | "cancelled";
+  waitlistPosition: number | null;
 };
 
 export function MemberBookingView() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [pendingId, setPendingId] = useState<string | null>(null);
 
-  async function loadSchedules() {
-    const response = await fetch("/api/schedules");
-    const data = await response.json();
-    setSchedules(data.schedules ?? []);
-  }
+  const load = useCallback(async () => {
+    const [scheduleResponse, bookingResponse] = await Promise.all([
+      fetch("/api/schedules"),
+      fetch("/api/bookings"),
+    ]);
+
+    const scheduleData = await scheduleResponse.json();
+    const bookingData = await bookingResponse.json();
+
+    setSchedules(scheduleData.schedules ?? []);
+    setBookings(bookingData.bookings ?? []);
+  }, []);
 
   useEffect(() => {
-    void loadSchedules();
-  }, []);
+    void load();
+  }, [load]);
 
   async function bookClass(scheduleId: string) {
     setMessage(null);
+    setPendingId(scheduleId);
 
-    const response = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ scheduleId }),
-    });
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduleId }),
+      });
 
-    const data = await response.json();
+      const data = await response.json();
 
-    if (!response.ok) {
-      setMessage(data.error ?? "Booking failed");
-      return;
+      if (!response.ok) {
+        setMessage(data.error ?? "Booking failed");
+        return;
+      }
+
+      setMessage(
+        data.booking.bookingStatus === "waitlisted"
+          ? "Added to the waitlist. We'll move you up automatically if a spot frees up."
+          : "Booked successfully.",
+      );
+      await load();
+    } finally {
+      setPendingId(null);
     }
+  }
 
-    setMessage(
-      data.booking.bookingStatus === "waitlisted"
-        ? "Added to waitlist."
-        : "Booked successfully.",
-    );
-    await loadSchedules();
+  async function cancelBooking(booking: Booking) {
+    setMessage(null);
+    setPendingId(booking.scheduleId);
+
+    try {
+      const response = await fetch(`/api/bookings/${booking.id}`, {
+        method: "DELETE",
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setMessage(data.error ?? "Cancellation failed");
+        return;
+      }
+
+      setMessage(
+        booking.bookingStatus === "waitlisted"
+          ? "Removed from the waitlist."
+          : "Booking cancelled.",
+      );
+      await load();
+    } finally {
+      setPendingId(null);
+    }
   }
 
   return (
@@ -64,35 +113,79 @@ export function MemberBookingView() {
         </p>
       ) : null}
 
-      {schedules.map((schedule) => (
-        <Card key={schedule.id} className="flex h-full flex-col">
-          <CardHeader className="pb-2">
-            <div className="flex items-start justify-between gap-3">
-              <CardTitle className="text-lg">{schedule.classTitle}</CardTitle>
-              <Badge variant="secondary">{schedule.status}</Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="flex flex-1 flex-col justify-between space-y-3">
-            <p className="text-sm text-muted-foreground">
-              {format(parseISO(schedule.startTime), "EEE d MMM · HH:mm")} –{" "}
-              {format(parseISO(schedule.endTime), "HH:mm")}
-            </p>
-            <p className="text-sm">Trainer: {schedule.trainerName}</p>
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-sm font-medium">
-                £{Number(schedule.price).toFixed(2)} · {schedule.spotsLeft} spots left
-              </span>
-              <Button
-                size="sm"
-                disabled={schedule.status !== "scheduled" || schedule.spotsLeft === 0}
-                onClick={() => void bookClass(schedule.id)}
-              >
-                Book
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+      {schedules.map((schedule) => {
+        const booking = bookings.find(
+          (row) => row.scheduleId === schedule.id,
+        );
+        const isFull = schedule.spotsLeft === 0;
+        const isPending = pendingId === schedule.id;
+        const isOpen = schedule.status === "scheduled";
+
+        return (
+          <Card key={schedule.id} className="flex h-full flex-col">
+            <CardHeader className="pb-2">
+              <div className="flex items-start justify-between gap-3">
+                <CardTitle className="text-lg">{schedule.classTitle}</CardTitle>
+                {booking ? (
+                  <Badge
+                    variant={
+                      booking.bookingStatus === "confirmed"
+                        ? "default"
+                        : "outline"
+                    }
+                  >
+                    {booking.bookingStatus === "confirmed"
+                      ? "Booked"
+                      : `Waitlist #${booking.waitlistPosition ?? "—"}`}
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">{schedule.status}</Badge>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="flex flex-1 flex-col justify-between space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {format(parseISO(schedule.startTime), "EEE d MMM · HH:mm")} –{" "}
+                {format(parseISO(schedule.endTime), "HH:mm")}
+              </p>
+              <p className="text-sm">Trainer: {schedule.trainerName}</p>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-sm font-medium">
+                  £{Number(schedule.price).toFixed(2)} ·{" "}
+                  {isFull
+                    ? `Full${
+                        schedule.waitlistCount > 0
+                          ? ` · ${schedule.waitlistCount} waiting`
+                          : ""
+                      }`
+                    : `${schedule.spotsLeft} spots left`}
+                </span>
+                {booking ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isPending}
+                    onClick={() => void cancelBooking(booking)}
+                  >
+                    {booking.bookingStatus === "waitlisted"
+                      ? "Leave waitlist"
+                      : "Cancel"}
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant={isFull ? "secondary" : "default"}
+                    disabled={!isOpen || isPending}
+                    onClick={() => void bookClass(schedule.id)}
+                  >
+                    {isFull ? "Join waitlist" : "Book"}
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
 
       {schedules.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground md:col-span-2">

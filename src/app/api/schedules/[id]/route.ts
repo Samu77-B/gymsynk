@@ -10,6 +10,10 @@ import {
   requireSession,
   unauthorizedResponse,
 } from "@/lib/auth";
+import {
+  fillOpenSpotsFromWaitlist,
+  resolveScheduleCapacity,
+} from "@/lib/bookings";
 
 const updateScheduleSchema = z.object({
   classId: z.string().uuid().optional(),
@@ -17,6 +21,7 @@ const updateScheduleSchema = z.object({
   startTime: z.string().datetime().optional(),
   endTime: z.string().datetime().optional(),
   status: z.enum(["scheduled", "completed", "cancelled"]).optional(),
+  capacityOverride: z.coerce.number().int().min(1).max(500).optional().nullable(),
 });
 
 type RouteContext = {
@@ -74,6 +79,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     ? new Date(parsed.data.endTime)
     : schedule.endTime;
 
+  let nextClass = schedule.class;
+
   if (parsed.data.classId) {
     const classRecord = await db.query.classes.findFirst({
       where: and(
@@ -85,6 +92,8 @@ export async function PATCH(request: Request, context: RouteContext) {
     if (!classRecord) {
       return jsonError("Class not found", 404);
     }
+
+    nextClass = classRecord;
   }
 
   if (nextTrainerId) {
@@ -118,13 +127,27 @@ export async function PATCH(request: Request, context: RouteContext) {
           startTime: nextStart,
           endTime: nextEnd,
           status: parsed.data.status,
+          capacityOverride: parsed.data.capacityOverride,
         }).filter(([, value]) => value !== undefined),
       ),
     )
     .where(eq(classSchedules.id, schedule.id))
     .returning();
 
-  return Response.json({ schedule: updated });
+  const previousCapacity = resolveScheduleCapacity(schedule);
+  const nextCapacity = resolveScheduleCapacity({
+    capacityOverride: updated.capacityOverride,
+    class: nextClass,
+  });
+
+  // Raising capacity should pull people off the waitlist rather than leaving
+  // them queued against spots that now exist.
+  const promoted =
+    nextCapacity > previousCapacity
+      ? await fillOpenSpotsFromWaitlist(schedule.id, nextCapacity)
+      : [];
+
+  return Response.json({ schedule: updated, promoted });
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {

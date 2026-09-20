@@ -10,6 +10,7 @@ import {
   requireSession,
   unauthorizedResponse,
 } from "@/lib/auth";
+import { resolveScheduleCapacity } from "@/lib/bookings";
 
 const createScheduleSchema = z.object({
   classId: z.string().uuid(),
@@ -17,6 +18,7 @@ const createScheduleSchema = z.object({
   startTime: z.string().datetime(),
   endTime: z.string().datetime(),
   status: z.enum(["scheduled", "completed", "cancelled"]).optional(),
+  capacityOverride: z.coerce.number().int().min(1).max(500).optional().nullable(),
 });
 
 export async function GET(request: Request) {
@@ -57,6 +59,10 @@ export async function GET(request: Request) {
     const confirmedCount = row.bookings.filter(
       (booking) => booking.bookingStatus === "confirmed",
     ).length;
+    const waitlistCount = row.bookings.filter(
+      (booking) => booking.bookingStatus === "waitlisted",
+    ).length;
+    const capacity = resolveScheduleCapacity(row);
 
     return {
       id: row.id,
@@ -65,16 +71,17 @@ export async function GET(request: Request) {
       status: row.status,
       classId: row.class.id,
       classTitle: row.class.title,
-      capacity: row.class.capacity,
+      capacity,
+      classCapacity: row.class.capacity,
+      capacityOverride: row.capacityOverride,
       price: row.class.price,
       trainerId: row.trainer?.id ?? null,
       trainerName: row.trainer?.fullName ?? "Unassigned",
       confirmedCount,
+      waitlistCount,
       fillRate:
-        row.class.capacity > 0
-          ? Math.round((confirmedCount / row.class.capacity) * 100)
-          : 0,
-      spotsLeft: Math.max(row.class.capacity - confirmedCount, 0),
+        capacity > 0 ? Math.round((confirmedCount / capacity) * 100) : 0,
+      spotsLeft: Math.max(capacity - confirmedCount, 0),
     };
   });
 
@@ -99,7 +106,8 @@ export async function POST(request: Request) {
     return parsed.response;
   }
 
-  const { classId, trainerId, startTime, endTime, status } = parsed.data;
+  const { classId, trainerId, startTime, endTime, status, capacityOverride } =
+    parsed.data;
   const db = getDb();
 
   const classRecord = await db.query.classes.findFirst({
@@ -143,6 +151,7 @@ export async function POST(request: Request) {
       startTime: start,
       endTime: end,
       status: status ?? "scheduled",
+      capacityOverride: capacityOverride ?? null,
     })
     .returning();
 

@@ -4,6 +4,7 @@ import {
   check,
   date,
   decimal,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -159,28 +160,45 @@ export const classSchedules = pgTable("class_schedules", {
   startTime: timestamp("start_time", { withTimezone: true }).notNull(),
   endTime: timestamp("end_time", { withTimezone: true }).notNull(),
   status: scheduleStatusEnum("status").notNull().default("scheduled"),
+  // Falls back to classes.capacity when null.
+  capacityOverride: integer("capacity_override"),
 });
 
-export const bookings = pgTable("bookings", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  tenantId: uuid("tenant_id")
-    .notNull()
-    .references(() => tenants.id, { onDelete: "cascade" }),
-  scheduleId: uuid("schedule_id")
-    .notNull()
-    .references(() => classSchedules.id, { onDelete: "cascade" }),
-  memberId: uuid("member_id")
-    .notNull()
-    .references(() => users.id, { onDelete: "cascade" }),
-  bookingStatus: bookingStatusEnum("booking_status")
-    .notNull()
-    .default("confirmed"),
-  paymentStatus: paymentStatusEnum("payment_status")
-    .notNull()
-    .default("pending"),
-  paysynkTransactionId: varchar("paysynk_transaction_id", { length: 255 }),
-  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
-});
+export const bookings = pgTable(
+  "bookings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    scheduleId: uuid("schedule_id")
+      .notNull()
+      .references(() => classSchedules.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    bookingStatus: bookingStatusEnum("booking_status")
+      .notNull()
+      .default("confirmed"),
+    paymentStatus: paymentStatusEnum("payment_status")
+      .notNull()
+      .default("pending"),
+    paysynkTransactionId: varchar("paysynk_transaction_id", { length: 255 }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    promotedAt: timestamp("promoted_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("bookings_schedule_member_active_idx")
+      .on(table.scheduleId, table.memberId)
+      .where(sql`${table.bookingStatus} <> 'cancelled'`),
+    index("bookings_schedule_status_created_idx").on(
+      table.scheduleId,
+      table.bookingStatus,
+      table.createdAt,
+    ),
+  ],
+);
 
 export const staffShifts = pgTable(
   "staff_shifts",
