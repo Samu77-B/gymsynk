@@ -5,6 +5,10 @@ import { bookings } from "@/db/schema";
 import { jsonError } from "@/lib/api";
 import { forbiddenResponse, requireSession, unauthorizedResponse } from "@/lib/auth";
 import { promoteNextFromWaitlist, resolveScheduleCapacity } from "@/lib/bookings";
+import {
+  applyPackCreditToBooking,
+  refundCreditForBooking,
+} from "@/lib/packs";
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -47,6 +51,8 @@ export async function DELETE(_request: Request, context: RouteContext) {
     .where(eq(bookings.id, booking.id))
     .returning();
 
+  const refundedPack = await refundCreditForBooking(booking);
+
   // Only a confirmed booking frees a spot; dropping off the waitlist just
   // shortens the queue for everyone behind them.
   const promoted =
@@ -57,5 +63,22 @@ export async function DELETE(_request: Request, context: RouteContext) {
         )
       : null;
 
-  return Response.json({ booking: cancelled, promoted });
+  // The promoted member is now confirmed, so their own pack settles the spot.
+  if (promoted) {
+    await applyPackCreditToBooking({
+      tenantId: promoted.tenantId,
+      userId: promoted.memberId,
+      bookingId: promoted.id,
+      trainingTierId: booking.schedule.class.trainingTierId,
+      actorUserId: session.userId,
+    });
+  }
+
+  return Response.json({
+    booking: cancelled,
+    promoted,
+    creditRefunded: refundedPack
+      ? { packId: refundedPack.id, label: refundedPack.label }
+      : null,
+  });
 }

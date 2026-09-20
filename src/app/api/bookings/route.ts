@@ -11,6 +11,7 @@ import {
   resolveScheduleCapacity,
 } from "@/lib/bookings";
 import { userCanBookClasses } from "@/lib/membership";
+import { applyPackCreditToBooking } from "@/lib/packs";
 
 const createBookingSchema = z.object({
   scheduleId: z.string().uuid(),
@@ -184,5 +185,27 @@ export async function POST(request: Request) {
     })
     .returning();
 
-  return Response.json({ booking }, { status: 201 });
+  // Waitlisted bookings do not spend a credit; they settle on promotion.
+  const spentPack =
+    bookingStatus === "confirmed"
+      ? await applyPackCreditToBooking({
+          tenantId: session.tenantId,
+          userId: memberId,
+          bookingId: booking.id,
+          trainingTierId: schedule.class.trainingTierId,
+          actorUserId: session.userId,
+        })
+      : null;
+
+  return Response.json(
+    {
+      booking: spentPack
+        ? { ...booking, memberPackId: spentPack.id, paymentStatus: "paid" }
+        : booking,
+      packUsed: spentPack
+        ? { id: spentPack.id, label: spentPack.label }
+        : null,
+    },
+    { status: 201 },
+  );
 }

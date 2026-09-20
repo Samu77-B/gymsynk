@@ -26,23 +26,38 @@ type Booking = {
   waitlistPosition: number | null;
 };
 
+type Pack = {
+  id: string;
+  label: string;
+  status: string;
+  unlimited: boolean;
+  remaining: number | null;
+  sessionsPerPeriod: number | null;
+  currentPeriodEnd: string;
+  tier: { id: string; name: string } | null;
+};
+
 export function MemberBookingView() {
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [packs, setPacks] = useState<Pack[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [scheduleResponse, bookingResponse] = await Promise.all([
+    const [scheduleResponse, bookingResponse, packResponse] = await Promise.all([
       fetch("/api/schedules"),
       fetch("/api/bookings"),
+      fetch("/api/member-packs"),
     ]);
 
     const scheduleData = await scheduleResponse.json();
     const bookingData = await bookingResponse.json();
+    const packData = await packResponse.json();
 
     setSchedules(scheduleData.schedules ?? []);
     setBookings(bookingData.bookings ?? []);
+    setPacks(packData.packs ?? []);
   }, []);
 
   useEffect(() => {
@@ -67,11 +82,17 @@ export function MemberBookingView() {
         return;
       }
 
-      setMessage(
-        data.booking.bookingStatus === "waitlisted"
-          ? "Added to the waitlist. We'll move you up automatically if a spot frees up."
-          : "Booked successfully.",
-      );
+      if (data.booking.bookingStatus === "waitlisted") {
+        setMessage(
+          "Added to the waitlist. We'll move you up automatically if a spot frees up.",
+        );
+      } else {
+        setMessage(
+          data.packUsed
+            ? `Booked using 1 session from your ${data.packUsed.label} pack.`
+            : "Booked successfully. Payment is due at the gym.",
+        );
+      }
       await load();
     } finally {
       setPendingId(null);
@@ -105,8 +126,32 @@ export function MemberBookingView() {
     }
   }
 
+  const activePacks = packs.filter((pack) => pack.status === "active");
+
   return (
     <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
+      {activePacks.length > 0 ? (
+        <div className="flex flex-wrap gap-2 md:col-span-2">
+          {activePacks.map((pack) => (
+            <span
+              key={pack.id}
+              className="rounded-md border bg-muted px-3 py-2 text-sm"
+            >
+              <span className="font-medium">
+                {pack.tier?.name ?? "All classes"}
+              </span>{" "}
+              ·{" "}
+              {pack.unlimited
+                ? "Unlimited sessions"
+                : `${pack.remaining ?? 0} of ${pack.sessionsPerPeriod ?? 0} sessions left`}{" "}
+              <span className="text-muted-foreground">
+                until {format(parseISO(pack.currentPeriodEnd), "d MMM")}
+              </span>
+            </span>
+          ))}
+        </div>
+      ) : null}
+
       {message ? (
         <p className="rounded-md border bg-muted px-3 py-2 text-sm md:col-span-2">
           {message}

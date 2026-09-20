@@ -10,17 +10,87 @@ config({ path: ".env.local" });
  *
  * `drizzle-kit push` only diffs the schema, so it silently skips the data
  * steps some migrations need (backfills, de-duplication before a new unique
- * index). Use this when a migration file has to run verbatim.
+ * index, DO blocks). Use this when a migration file has to run verbatim.
  *
  *   npm run db:migrate 0011_booking_waitlist
  *
- * The Neon HTTP driver sends one statement per request, so the file is split
- * on semicolons. That means migrations run here must not contain semicolons
- * inside string literals or dollar-quoted function bodies.
+ * The Neon HTTP driver sends one statement per request, so the file has to be
+ * split locally. Semicolons inside string literals, comments, and dollar-quoted
+ * blocks are ignored so `DO $$ ... END $$;` survives intact.
  */
 function splitStatements(sql: string) {
-  return sql
-    .split(";")
+  const statements: string[] = [];
+  let current = "";
+  let index = 0;
+
+  while (index < sql.length) {
+    const rest = sql.slice(index);
+
+    // Line comment.
+    if (rest.startsWith("--")) {
+      const newline = sql.indexOf("\n", index);
+      const end = newline === -1 ? sql.length : newline;
+      current += sql.slice(index, end);
+      index = end;
+      continue;
+    }
+
+    // Block comment.
+    if (rest.startsWith("/*")) {
+      const close = sql.indexOf("*/", index + 2);
+      const end = close === -1 ? sql.length : close + 2;
+      current += sql.slice(index, end);
+      index = end;
+      continue;
+    }
+
+    // Single-quoted string, including '' escapes.
+    if (rest.startsWith("'")) {
+      let cursor = index + 1;
+
+      while (cursor < sql.length) {
+        if (sql[cursor] === "'") {
+          if (sql[cursor + 1] === "'") {
+            cursor += 2;
+            continue;
+          }
+          cursor += 1;
+          break;
+        }
+        cursor += 1;
+      }
+
+      current += sql.slice(index, cursor);
+      index = cursor;
+      continue;
+    }
+
+    // Dollar-quoted block: $$ ... $$ or $tag$ ... $tag$.
+    const dollarTag = /^\$[A-Za-z_]*\$/.exec(rest);
+
+    if (dollarTag) {
+      const tag = dollarTag[0];
+      const close = sql.indexOf(tag, index + tag.length);
+      const end = close === -1 ? sql.length : close + tag.length;
+      current += sql.slice(index, end);
+      index = end;
+      continue;
+    }
+
+    if (sql[index] === ";") {
+      statements.push(current);
+      current = "";
+      index += 1;
+      continue;
+    }
+
+    current += sql[index];
+    index += 1;
+  }
+
+  statements.push(current);
+
+  return statements
     .map((statement) => statement.trim())
     .filter((statement) => {
       if (statement.length === 0) {

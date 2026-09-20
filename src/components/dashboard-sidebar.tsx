@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   Package,
   Settings,
+  Ticket,
   UserCog,
   Users,
 } from "lucide-react";
@@ -64,6 +65,13 @@ const navItems: NavItem[] = [
     href: "/admin/group-training",
     label: "Group training",
     icon: Package,
+    roles: ["owner", "admin"],
+    feature: "sessionPacks",
+  },
+  {
+    href: "/admin/member-packs",
+    label: "Member packs",
+    icon: Ticket,
     roles: ["owner", "admin"],
     feature: "sessionPacks",
   },

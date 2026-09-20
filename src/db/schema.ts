@@ -49,6 +49,19 @@ export const membershipStatusEnum = pgEnum("membership_status", [
   "incomplete",
 ]);
 
+export const memberPackStatusEnum = pgEnum("member_pack_status", [
+  "active",
+  "paused",
+  "cancelled",
+  "expired",
+]);
+
+export const packCreditReasonEnum = pgEnum("pack_credit_reason", [
+  "booking",
+  "booking_cancelled",
+  "admin_adjustment",
+]);
+
 export const parqStatusEnum = pgEnum("parq_status", [
   "not_started",
   "cleared",
@@ -131,6 +144,60 @@ export const trainingPackOptions = pgTable("training_pack_options", {
   active: boolean("active").notNull().default(true),
 });
 
+/**
+ * A member's entitlement to a pack. Credits refill every period rather than
+ * accumulating, so the period window is stored on the pack itself and rolled
+ * forward lazily on read.
+ */
+export const memberPacks = pgTable(
+  "member_packs",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    // Null tier means the pack can pay for any class in the gym.
+    tierId: uuid("tier_id").references(() => trainingTiers.id, {
+      onDelete: "set null",
+    }),
+    packOptionId: uuid("pack_option_id").references(
+      () => trainingPackOptions.id,
+      { onDelete: "set null" },
+    ),
+    // Snapshot of the pack option at grant time so later price/name edits
+    // do not rewrite a member's history.
+    label: varchar("label", { length: 255 }).notNull(),
+    // Null means unlimited for the period.
+    sessionsPerPeriod: integer("sessions_per_period"),
+    price: decimal("price", { precision: 10, scale: 2 }),
+    status: memberPackStatusEnum("status").notNull().default("active"),
+    source: varchar("source", { length: 20 }).notNull().default("admin"),
+    currentPeriodStart: timestamp("current_period_start", {
+      withTimezone: true,
+    }).notNull(),
+    currentPeriodEnd: timestamp("current_period_end", {
+      withTimezone: true,
+    }).notNull(),
+    stripeSubscriptionId: varchar("stripe_subscription_id", { length: 255 }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    uniqueIndex("member_packs_stripe_subscription_idx")
+      .on(table.stripeSubscriptionId)
+      .where(sql`${table.stripeSubscriptionId} IS NOT NULL`),
+    index("member_packs_tenant_user_idx").on(
+      table.tenantId,
+      table.userId,
+      table.status,
+    ),
+  ],
+);
+
 export const classes = pgTable("classes", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id")
@@ -187,6 +254,10 @@ export const bookings = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
     cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
     promotedAt: timestamp("promoted_at", { withTimezone: true }),
+    // Set when a pack credit paid for this booking.
+    memberPackId: uuid("member_pack_id").references(() => memberPacks.id, {
+      onDelete: "set null",
+    }),
   },
   (table) => [
     uniqueIndex("bookings_schedule_member_active_idx")
@@ -197,6 +268,46 @@ export const bookings = pgTable(
       table.bookingStatus,
       table.createdAt,
     ),
+  ],
+);
+
+/**
+ * Signed ledger of pack credit movements: -1 when a booking spends one, +1
+ * when it is handed back. A member's balance is derived from these rows for
+ * the pack's current period, which makes unused credits expire without a
+ * scheduled reset job and keeps a full audit trail.
+ */
+export const packCredits = pgTable(
+  "pack_credits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    memberPackId: uuid("member_pack_id")
+      .notNull()
+      .references(() => memberPacks.id, { onDelete: "cascade" }),
+    bookingId: uuid("booking_id").references(() => bookings.id, {
+      onDelete: "set null",
+    }),
+    delta: integer("delta").notNull(),
+    reason: packCreditReasonEnum("reason").notNull(),
+    periodStart: timestamp("period_start", { withTimezone: true }).notNull(),
+    createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("pack_credits_pack_period_idx").on(
+      table.memberPackId,
+      table.periodStart,
+    ),
+    // A booking can only ever spend once and refund once, even if a request
+    // is retried or two cancellations race.
+    uniqueIndex("pack_credits_booking_reason_idx")
+      .on(table.bookingId, table.reason)
+      .where(sql`${table.bookingId} IS NOT NULL`),
   ],
 );
 
@@ -344,6 +455,8 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   memberProfiles: many(memberProfiles),
   trainingTiers: many(trainingTiers),
   trainingPackOptions: many(trainingPackOptions),
+  memberPacks: many(memberPacks),
+  packCredits: many(packCredits),
 }));
 
 export const trainingTiersRelations = relations(trainingTiers, ({ one, many }) => ({
@@ -353,6 +466,7 @@ export const trainingTiersRelations = relations(trainingTiers, ({ one, many }) =
   }),
   packs: many(trainingPackOptions),
   classes: many(classes),
+  memberPacks: many(memberPacks),
 }));
 
 export const trainingPackOptionsRelations = relations(
@@ -379,6 +493,7 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   shifts: many(staffShifts),
   primaryMemberships: many(memberships),
   membershipLinks: many(membershipMembers),
+  packs: many(memberPacks),
   memberProfile: one(memberProfiles, {
     fields: [users.id],
     references: [memberProfiles.userId],
@@ -416,7 +531,7 @@ export const classSchedulesRelations = relations(
   }),
 );
 
-export const bookingsRelations = relations(bookings, ({ one }) => ({
+export const bookingsRelations = relations(bookings, ({ one, many }) => ({
   tenant: one(tenants, {
     fields: [bookings.tenantId],
     references: [tenants.id],
@@ -427,6 +542,50 @@ export const bookingsRelations = relations(bookings, ({ one }) => ({
   }),
   member: one(users, {
     fields: [bookings.memberId],
+    references: [users.id],
+  }),
+  memberPack: one(memberPacks, {
+    fields: [bookings.memberPackId],
+    references: [memberPacks.id],
+  }),
+  credits: many(packCredits),
+}));
+
+export const memberPacksRelations = relations(memberPacks, ({ one, many }) => ({
+  tenant: one(tenants, {
+    fields: [memberPacks.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [memberPacks.userId],
+    references: [users.id],
+  }),
+  tier: one(trainingTiers, {
+    fields: [memberPacks.tierId],
+    references: [trainingTiers.id],
+  }),
+  packOption: one(trainingPackOptions, {
+    fields: [memberPacks.packOptionId],
+    references: [trainingPackOptions.id],
+  }),
+  credits: many(packCredits),
+}));
+
+export const packCreditsRelations = relations(packCredits, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [packCredits.tenantId],
+    references: [tenants.id],
+  }),
+  memberPack: one(memberPacks, {
+    fields: [packCredits.memberPackId],
+    references: [memberPacks.id],
+  }),
+  booking: one(bookings, {
+    fields: [packCredits.bookingId],
+    references: [bookings.id],
+  }),
+  createdBy: one(users, {
+    fields: [packCredits.createdByUserId],
     references: [users.id],
   }),
 }));
