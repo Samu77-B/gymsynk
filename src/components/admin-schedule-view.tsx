@@ -34,12 +34,20 @@ type Schedule = {
   startTime: string;
   endTime: string;
   capacity: number;
+  classCapacity: number;
+  capacityOverride: number | null;
   confirmedCount: number;
+  waitlistCount: number;
   fillRate: number;
   status: string;
 };
 
-type ClassOption = { id: string; title: string; durationMinutes: number };
+type ClassOption = {
+  id: string;
+  title: string;
+  durationMinutes: number;
+  capacity: number;
+};
 type TrainerOption = { id: string; fullName: string };
 
 type EditForm = {
@@ -47,6 +55,7 @@ type EditForm = {
   trainerId: string;
   startTime: string;
   durationMinutes: number;
+  capacity: number;
   status: "scheduled" | "completed" | "cancelled";
 };
 
@@ -93,12 +102,14 @@ export function AdminScheduleView({
   const [trainerId, setTrainerId] = useState("");
   const [startTime, setStartTime] = useState("");
   const [durationMinutes, setDurationMinutes] = useState(45);
+  const [capacity, setCapacity] = useState(15);
   const [editId, setEditId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<EditForm>({
     classId: "",
     trainerId: "",
     startTime: "",
     durationMinutes: 45,
+    capacity: 15,
     status: "scheduled",
   });
   const [message, setMessage] = useState<string | null>(null);
@@ -147,6 +158,11 @@ export function AdminScheduleView({
       return;
     }
 
+    if (canSetDuration && (capacity < 1 || capacity > 500)) {
+      setError("Capacity must be between 1 and 500.");
+      return;
+    }
+
     const sessionDuration = canSetDuration
       ? durationMinutes
       : selectedClass.durationMinutes;
@@ -163,6 +179,12 @@ export function AdminScheduleView({
         trainerId: trainerId || null,
         startTime: start.toISOString(),
         endTime: end.toISOString(),
+        // Only stored when it differs, so the session keeps following the
+        // class type if that capacity is later changed.
+        capacityOverride:
+          canSetDuration && capacity !== selectedClass.capacity
+            ? capacity
+            : null,
       }),
     });
 
@@ -184,6 +206,7 @@ export function AdminScheduleView({
       trainerId: item.trainerId ?? "",
       startTime: toDatetimeLocal(item.startTime),
       durationMinutes: durationFromTimes(item.startTime, item.endTime),
+      capacity: item.capacity,
       status: item.status as EditForm["status"],
     });
     setMessage(null);
@@ -213,6 +236,11 @@ export function AdminScheduleView({
       return;
     }
 
+    if (canSetDuration && (editForm.capacity < 1 || editForm.capacity > 500)) {
+      setError("Capacity must be between 1 and 500.");
+      return;
+    }
+
     const sessionDuration = canSetDuration
       ? editForm.durationMinutes
       : selectedClass.durationMinutes;
@@ -230,6 +258,10 @@ export function AdminScheduleView({
         startTime: start.toISOString(),
         endTime: end.toISOString(),
         status: editForm.status,
+        capacityOverride:
+          canSetDuration && editForm.capacity !== selectedClass.capacity
+            ? editForm.capacity
+            : null,
       }),
     });
 
@@ -240,7 +272,13 @@ export function AdminScheduleView({
       return;
     }
 
-    setMessage("Schedule updated.");
+    const promotedCount = Array.isArray(data.promoted) ? data.promoted.length : 0;
+
+    setMessage(
+      promotedCount > 0
+        ? `Schedule updated. ${promotedCount} member(s) moved off the waitlist.`
+        : "Schedule updated.",
+    );
     setEditId(null);
     await loadData();
   }
@@ -363,6 +401,7 @@ export function AdminScheduleView({
     const selectedClass = classes.find((item) => item.id === nextClassId);
     if (selectedClass) {
       setDurationMinutes(selectedClass.durationMinutes);
+      setCapacity(selectedClass.capacity);
     }
   }
 
@@ -374,6 +413,7 @@ export function AdminScheduleView({
       ...form,
       classId: nextClassId,
       durationMinutes: selectedClass?.durationMinutes ?? form.durationMinutes,
+      capacity: selectedClass?.capacity ?? form.capacity,
     }));
   }
 
@@ -529,6 +569,24 @@ export function AdminScheduleView({
                 </p>
               </div>
             ) : null}
+            {canSetDuration ? (
+              <div className="space-y-2">
+                <Label htmlFor="capacity">Capacity</Label>
+                <Input
+                  id="capacity"
+                  type="number"
+                  min={1}
+                  max={500}
+                  value={capacity}
+                  onChange={(event) => setCapacity(Number(event.target.value))}
+                  required
+                />
+                <p className="text-xs text-muted-foreground">
+                  Defaults from the class type; change for this session only.
+                  Members who book once it is full join the waitlist.
+                </p>
+              </div>
+            ) : null}
             <div className={`flex items-end ${canSetDuration ? "md:col-span-2" : ""}`}>
               <Button type="submit">Create schedule</Button>
             </div>
@@ -630,6 +688,28 @@ export function AdminScheduleView({
                   />
                 </div>
               ) : null}
+              {canSetDuration ? (
+                <div className="space-y-2">
+                  <Label htmlFor="editCapacity">Capacity</Label>
+                  <Input
+                    id="editCapacity"
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={editForm.capacity}
+                    onChange={(event) =>
+                      setEditForm((form) => ({
+                        ...form,
+                        capacity: Number(event.target.value),
+                      }))
+                    }
+                    required
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Raising this promotes waitlisted members automatically.
+                  </p>
+                </div>
+              ) : null}
               <div className="space-y-2">
                 <Label>Status</Label>
                 <Select
@@ -705,6 +785,16 @@ export function AdminScheduleView({
                     <TableCell>{item.trainerName}</TableCell>
                     <TableCell>
                       {item.confirmedCount}/{item.capacity} ({item.fillRate}%)
+                      {item.capacityOverride !== null ? (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          override
+                        </span>
+                      ) : null}
+                      {item.waitlistCount > 0 ? (
+                        <span className="ml-2 text-xs font-medium text-muted-foreground">
+                          +{item.waitlistCount} waiting
+                        </span>
+                      ) : null}
                     </TableCell>
                     <TableCell>
                       <Badge variant={statusVariant(item.status)}>

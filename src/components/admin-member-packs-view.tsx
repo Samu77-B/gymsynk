@@ -113,8 +113,19 @@ export function AdminMemberPacksView() {
   const grantableOptions = tiers.flatMap((tier) =>
     tier.packs
       .filter((pack) => !pack.isPayAsYouGo && pack.sessionCount)
-      .map((pack) => ({ ...pack, tierName: tier.name })),
+      .map((pack) => ({
+        ...pack,
+        tierName: tier.name,
+        optionLabel: `${tier.name} · ${pack.label} · £${pack.price}`,
+      })),
   );
+
+  const selectedMemberName = members.find(
+    (member) => member.id === memberId,
+  )?.fullName;
+  const selectedOptionLabel = grantableOptions.find(
+    (option) => option.id === packOptionId,
+  )?.optionLabel;
 
   async function grantPack() {
     if (!memberId || !packOptionId) {
@@ -218,13 +229,23 @@ export function AdminMemberPacksView() {
             <Select
               value={memberId}
               onValueChange={(value) => setMemberId(value ?? "")}
+              items={members.map((member) => ({
+                value: member.id,
+                label: member.fullName,
+              }))}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a member" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose a member">
+                  {selectedMemberName}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {members.map((member) => (
-                  <SelectItem key={member.id} value={member.id}>
+                  <SelectItem
+                    key={member.id}
+                    value={member.id}
+                    label={member.fullName}
+                  >
                     {member.fullName}
                   </SelectItem>
                 ))}
@@ -237,14 +258,24 @@ export function AdminMemberPacksView() {
             <Select
               value={packOptionId}
               onValueChange={(value) => setPackOptionId(value ?? "")}
+              items={grantableOptions.map((option) => ({
+                value: option.id,
+                label: option.optionLabel,
+              }))}
             >
-              <SelectTrigger>
-                <SelectValue placeholder="Choose a pack" />
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Choose a pack">
+                  {selectedOptionLabel}
+                </SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {grantableOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.tierName} · {option.label} · £{option.price}
+                  <SelectItem
+                    key={option.id}
+                    value={option.id}
+                    label={option.optionLabel}
+                  >
+                    {option.optionLabel}
                   </SelectItem>
                 ))}
               </SelectContent>
