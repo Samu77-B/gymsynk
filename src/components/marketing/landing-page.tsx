@@ -73,7 +73,7 @@ const plans = [
   },
   {
     name: "GymSynk Pro",
-    price: "£89",
+    price: "£69",
     period: "/ month",
     description:
       "For growing gyms with multiple trainers, locations, or higher member volume.",
@@ -327,23 +327,18 @@ export function LandingPage() {
             Class schedule on any page
           </h2>
           <p className="mt-4 max-w-2xl text-muted-foreground">
-            Drop a snippet on WordPress, Webflow, Framer, or any site. One
-            timetable from GymSynk — styled to match the gym&apos;s brand.
+            One timetable from GymSynk, styled to the gym&apos;s brand. This is
+            the live Reset demo. Gym owners copy the embed snippet from Gym
+            settings when they add it to their own site.
           </p>
 
-          <div className="mt-10 overflow-hidden rounded-xl border border-border/60 bg-neutral-950 shadow-lg">
-            <pre className="overflow-x-auto p-6 text-sm leading-relaxed text-neutral-300">
-              <code>{`<!-- Weekly class schedule -->
-<iframe
-  src="https://gymsynk.net/embed/reset/schedule"
-  title="Reset class schedule"
-  style="width:100%;min-height:520px;border:0;border-radius:12px;"
-  loading="lazy"
-></iframe>
-
-<!-- Or link members to join -->
-<a href="https://gymsynk.net/join?tenant=reset">Join Reset</a>`}</code>
-            </pre>
+          <div className="mt-10 overflow-hidden rounded-xl border border-border/60 bg-background shadow-lg">
+            <iframe
+              src="/embed/reset/schedule"
+              title="Reset class schedule"
+              className="h-[520px] w-full border-0"
+              loading="lazy"
+            />
           </div>
 
           <p className="mt-4 text-sm text-muted-foreground">
