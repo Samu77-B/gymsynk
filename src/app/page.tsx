@@ -5,6 +5,7 @@ import {
   ClipboardList,
   CreditCard,
   Package,
+  ScanLine,
   Settings,
   TrendingUp,
   Users,
@@ -16,6 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getSession } from "@/lib/auth";
 import { getTenantBrand } from "@/lib/tenant-branding";
+import { countCheckInsToday } from "@/lib/check-ins";
+import { canScanDoorAccess } from "@/lib/gym-access";
 import { getTenantFeatures, type TenantFeatureKey } from "@/lib/tenant-features";
 
 const quickLinks: Array<{
@@ -72,6 +75,22 @@ const quickLinks: Array<{
     feature: "classBooking",
   },
   {
+    href: "/admin/access",
+    title: "Door entry",
+    description: "Scan member QR passes at reception.",
+    icon: ScanLine,
+    roles: ["owner", "admin", "trainer"],
+    feature: "doorEntry",
+  },
+  {
+    href: "/member/access",
+    title: "Gym pass",
+    description: "Your QR code for door entry.",
+    icon: ScanLine,
+    roles: ["owner", "admin", "trainer", "member"],
+    feature: "doorEntry",
+  },
+  {
     href: "/admin/settings",
     title: "Gym settings",
     description: "Features, logo, and brand colours.",
@@ -95,7 +114,12 @@ export default async function HomePage() {
     memberships: true,
     classBooking: true,
     sessionPacks: false,
+    doorEntry: false,
   };
+  const checkInsToday =
+    tenantFeatures.doorEntry && canScanDoorAccess(session.role)
+      ? await countCheckInsToday(session.tenantId)
+      : null;
   const links = quickLinks.filter(
     (link) =>
       link.roles.includes(session.role) &&
@@ -117,7 +141,15 @@ export default async function HomePage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {[
             { label: "Active members", value: "—", change: "Live data soon" },
-            { label: "Check-ins today", value: "—", change: "Live data soon" },
+            {
+              label: "Check-ins today",
+              value:
+                checkInsToday === null ? "—" : String(checkInsToday),
+              change:
+                checkInsToday === null
+                  ? "Enable door entry (Pro)"
+                  : "Granted entries today",
+            },
             { label: "Classes this week", value: "—", change: "Live data soon" },
             { label: "Staff on shift", value: "—", change: "Live data soon" },
           ].map((stat) => (

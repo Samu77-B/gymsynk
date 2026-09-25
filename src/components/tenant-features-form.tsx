@@ -22,6 +22,7 @@ const featureOrder: TenantFeatureKey[] = [
   "memberships",
   "classBooking",
   "sessionPacks",
+  "doorEntry",
 ];
 
 export function TenantFeaturesForm() {

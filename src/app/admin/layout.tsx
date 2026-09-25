@@ -25,7 +25,14 @@ export default async function AdminLayout({
     <DashboardShell
       session={session}
       brand={brand}
-      features={features ?? { memberships: true, classBooking: true, sessionPacks: false }}
+      features={
+        features ?? {
+          memberships: true,
+          classBooking: true,
+          sessionPacks: false,
+          doorEntry: false,
+        }
+      }
     >
       {children}
     </DashboardShell>

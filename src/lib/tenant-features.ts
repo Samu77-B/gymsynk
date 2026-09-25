@@ -8,6 +8,7 @@ export type TenantFeatures = {
   memberships: boolean;
   classBooking: boolean;
   sessionPacks: boolean;
+  doorEntry: boolean;
 };
 
 export type TenantFeatureKey = keyof TenantFeatures;
@@ -31,17 +32,24 @@ export const TENANT_FEATURE_LABELS: Record<
     description:
       "Tiered class packs on your website, pay-as-you-go options, and class-to-tier assignment.",
   },
+  doorEntry: {
+    title: "Door entry (GymSynk Pro)",
+    description:
+      "Member QR passes, reception scanning, and check-in history. Active membership or staff required.",
+  },
 };
 
 export function resolveTenantFeatures(tenant: {
   featureMemberships: boolean;
   featureClassBooking: boolean;
   featureSessionPacks: boolean;
+  featureDoorEntry: boolean;
 }): TenantFeatures {
   return {
     memberships: tenant.featureMemberships,
     classBooking: tenant.featureClassBooking,
     sessionPacks: tenant.featureSessionPacks,
+    doorEntry: tenant.featureDoorEntry,
   };
 }
 
@@ -54,6 +62,7 @@ export async function getTenantFeatures(
       featureMemberships: true,
       featureClassBooking: true,
       featureSessionPacks: true,
+      featureDoorEntry: true,
     },
   });
 
@@ -73,6 +82,7 @@ export async function getTenantFeaturesById(
       featureMemberships: true,
       featureClassBooking: true,
       featureSessionPacks: true,
+      featureDoorEntry: true,
     },
   });
 

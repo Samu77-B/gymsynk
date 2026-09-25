@@ -17,11 +17,14 @@ async function main() {
     SET
       feature_memberships = true,
       feature_class_booking = true,
-      feature_session_packs = true
+      feature_session_packs = true,
+      feature_door_entry = true
     WHERE slug = 'reset'
   `;
 
-  console.log("Reset: all features enabled (memberships, class booking, group training).");
+  console.log(
+    "Reset: all features enabled (memberships, class booking, group training, door entry).",
+  );
 }
 
 main().catch((error) => {

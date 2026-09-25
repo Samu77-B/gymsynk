@@ -17,6 +17,7 @@ const featuresSchema = z.object({
   memberships: z.boolean().optional(),
   classBooking: z.boolean().optional(),
   sessionPacks: z.boolean().optional(),
+  doorEntry: z.boolean().optional(),
 });
 
 export async function GET() {
@@ -36,6 +37,7 @@ export async function GET() {
       featureMemberships: true,
       featureClassBooking: true,
       featureSessionPacks: true,
+      featureDoorEntry: true,
     },
   });
 
@@ -75,6 +77,10 @@ export async function PATCH(request: Request) {
 
   if (parsed.data.sessionPacks !== undefined) {
     updates.featureSessionPacks = parsed.data.sessionPacks;
+  }
+
+  if (parsed.data.doorEntry !== undefined) {
+    updates.featureDoorEntry = parsed.data.doorEntry;
   }
 
   if (Object.keys(updates).length === 0) {

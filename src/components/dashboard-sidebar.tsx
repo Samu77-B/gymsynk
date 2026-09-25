@@ -9,6 +9,7 @@ import {
   CreditCard,
   LayoutDashboard,
   Package,
+  ScanLine,
   Settings,
   Ticket,
   UserCog,
@@ -62,6 +63,13 @@ const navItems: NavItem[] = [
     roles: ["owner", "admin"],
   },
   {
+    href: "/admin/access",
+    label: "Door entry",
+    icon: ScanLine,
+    roles: ["owner", "admin", "trainer"],
+    feature: "doorEntry",
+  },
+  {
     href: "/admin/group-training",
     label: "Group training",
     icon: Package,
@@ -88,6 +96,13 @@ const navItems: NavItem[] = [
     icon: CalendarDays,
     roles: ["owner", "admin", "trainer", "member"],
     feature: "classBooking",
+  },
+  {
+    href: "/member/access",
+    label: "Gym pass",
+    icon: ScanLine,
+    roles: ["owner", "admin", "trainer", "member"],
+    feature: "doorEntry",
   },
   {
     href: "/admin/settings",

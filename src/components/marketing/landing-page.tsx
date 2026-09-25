@@ -79,6 +79,7 @@ const plans = [
       "For growing gyms with multiple trainers, locations, or higher member volume.",
     features: [
       "Everything in Standard",
+      "Member QR door entry & reception scanning",
       "Unlimited staff accounts",
       "Advanced reporting (coming soon)",
       "Priority support",

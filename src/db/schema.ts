@@ -69,6 +69,13 @@ export const parqStatusEnum = pgEnum("parq_status", [
   "declined",
 ]);
 
+export const checkInResultEnum = pgEnum("check_in_result", [
+  "granted",
+  "denied",
+]);
+
+export const checkInMethodEnum = pgEnum("check_in_method", ["qr"]);
+
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -78,6 +85,7 @@ export const tenants = pgTable("tenants", {
   featureMemberships: boolean("feature_memberships").notNull().default(true),
   featureClassBooking: boolean("feature_class_booking").notNull().default(true),
   featureSessionPacks: boolean("feature_session_packs").notNull().default(false),
+  featureDoorEntry: boolean("feature_door_entry").notNull().default(false),
   websiteUrl: varchar("website_url", { length: 2048 }),
   externalBookUrl: varchar("external_book_url", { length: 2048 }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
@@ -444,6 +452,37 @@ export const memberProfiles = pgTable("member_profiles", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+export const memberCheckIns = pgTable(
+  "member_check_ins",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    result: checkInResultEnum("result").notNull(),
+    denialReason: varchar("denial_reason", { length: 255 }),
+    method: checkInMethodEnum("method").notNull().default("qr"),
+    scannedByUserId: uuid("scanned_by_user_id").references(() => users.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("member_check_ins_tenant_created_idx").on(
+      table.tenantId,
+      table.createdAt,
+    ),
+    index("member_check_ins_tenant_user_created_idx").on(
+      table.tenantId,
+      table.userId,
+      table.createdAt,
+    ),
+  ],
+);
+
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
   classes: many(classes),
@@ -457,6 +496,7 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   trainingPackOptions: many(trainingPackOptions),
   memberPacks: many(memberPacks),
   packCredits: many(packCredits),
+  checkIns: many(memberCheckIns),
 }));
 
 export const trainingTiersRelations = relations(trainingTiers, ({ one, many }) => ({
@@ -494,6 +534,8 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   primaryMemberships: many(memberships),
   membershipLinks: many(membershipMembers),
   packs: many(memberPacks),
+  checkInsAsMember: many(memberCheckIns, { relationName: "checkInMember" }),
+  checkInsScanned: many(memberCheckIns, { relationName: "checkInScanner" }),
   memberProfile: one(memberProfiles, {
     fields: [users.id],
     references: [memberProfiles.userId],
@@ -653,5 +695,22 @@ export const memberProfilesRelations = relations(memberProfiles, ({ one }) => ({
   user: one(users, {
     fields: [memberProfiles.userId],
     references: [users.id],
+  }),
+}));
+
+export const memberCheckInsRelations = relations(memberCheckIns, ({ one }) => ({
+  tenant: one(tenants, {
+    fields: [memberCheckIns.tenantId],
+    references: [tenants.id],
+  }),
+  user: one(users, {
+    fields: [memberCheckIns.userId],
+    references: [users.id],
+    relationName: "checkInMember",
+  }),
+  scannedBy: one(users, {
+    fields: [memberCheckIns.scannedByUserId],
+    references: [users.id],
+    relationName: "checkInScanner",
   }),
 }));
