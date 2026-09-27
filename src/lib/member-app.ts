@@ -17,7 +17,7 @@ export type MemberAppTab = {
     | "Account";
 };
 
-/** Tabs a joined member sees. Order matches the phone bar. */
+/** Tabs a joined member sees. Order matches the bar under the gym name. */
 export function memberAppTabs(features: TenantFeatures): MemberAppTab[] {
   const tabs: MemberAppTab[] = [];
 

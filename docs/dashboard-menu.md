@@ -16,7 +16,7 @@ You are signed in as the gym owner. Some items only appear when that feature is 
 | **Settings** | Turn features on or off, set the website embed, and upload the logo and brand colour. |
 | **Member app** | Opens the phone app a joined member sees. Not part of the office menu. |
 
-A person who has joined does not see this menu. Their app has a bar along the bottom:
+A person who has joined does not see this menu. Their app has a bar under the gym name:
 
 | Tab | What it is for |
 |---|---|

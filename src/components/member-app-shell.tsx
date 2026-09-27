@@ -82,15 +82,8 @@ export function MemberAppShell({
             </Link>
             <ThemeToggle />
           </div>
-        </header>
-
-        <main className="flex-1 px-4 py-6">
-          <DashboardPageTransition>{children}</DashboardPageTransition>
-        </main>
-
-        <footer className="sticky bottom-0 z-30 border-t border-border bg-background pb-[max(0.25rem,env(safe-area-inset-bottom))]">
           {tabs.length > 0 ? (
-            <nav aria-label="Member" className="flex overflow-x-auto">
+            <nav aria-label="Member" className="flex border-t border-border">
               {tabs.map((tab) => {
                 const Icon = tabIcons[tab.href];
                 const active = pathname.startsWith(tab.href);
@@ -101,17 +94,24 @@ export function MemberAppShell({
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex min-w-[4.25rem] flex-1 shrink-0 flex-col items-center gap-1 px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.12em]",
+                      "flex min-w-0 flex-1 flex-col items-center gap-1 px-0.5 py-2 text-[9px] font-semibold uppercase leading-none tracking-[0.04em]",
                       active ? "text-brand" : "text-muted-foreground",
                     )}
                   >
                     <Icon className="size-5" />
-                    {tab.label}
+                    <span className="whitespace-nowrap">{tab.label}</span>
                   </Link>
                 );
               })}
             </nav>
           ) : null}
+        </header>
+
+        <main className="flex-1 px-4 py-6">
+          <DashboardPageTransition>{children}</DashboardPageTransition>
+        </main>
+
+        <footer className="sticky bottom-0 z-30 border-t border-border bg-background pb-[max(0.25rem,env(safe-area-inset-bottom))]">
           <PoweredByGymSynk className="justify-center py-2" />
         </footer>
       </div>
