@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 
 import { getDb } from "@/db";
 import { memberProfiles, membershipMembers, membershipPlans, memberships, tenants, users } from "@/db/schema";
+import { ensureMemberNumber } from "@/lib/member-number";
 import { getStripe, mapStripeSubscriptionStatus } from "@/lib/stripe";
 import {
   getInvoiceSubscriptionId,
@@ -137,6 +138,8 @@ export async function provisionMembershipFromCheckout(
       termsAcceptedAt: new Date(),
     });
   }
+
+  await ensureMemberNumber(tenantId, user.id);
 
   return membership;
 }

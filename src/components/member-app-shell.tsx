@@ -3,7 +3,15 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDays, ScanLine, UserRound, type LucideIcon } from "lucide-react";
+import {
+  BarChart3,
+  CalendarDays,
+  Dumbbell,
+  ScanLine,
+  UserRound,
+  Utensils,
+  type LucideIcon,
+} from "lucide-react";
 
 import { DashboardPageTransition } from "@/components/dashboard-page-transition";
 import { PoweredByGymSynk } from "@/components/powered-by-gymsynk";
@@ -16,7 +24,10 @@ import type { TenantFeatures } from "@/lib/tenant-features";
 
 const tabIcons: Record<MemberAppTab["href"], LucideIcon> = {
   "/member/book": CalendarDays,
+  "/member/workouts": Dumbbell,
+  "/member/nutrition": Utensils,
   "/member/access": ScanLine,
+  "/member/activity": BarChart3,
   "/member/membership": UserRound,
 };
 
@@ -79,7 +90,7 @@ export function MemberAppShell({
 
         <footer className="sticky bottom-0 z-30 border-t border-border bg-background pb-[max(0.25rem,env(safe-area-inset-bottom))]">
           {tabs.length > 0 ? (
-            <nav aria-label="Member" className="flex">
+            <nav aria-label="Member" className="flex overflow-x-auto">
               {tabs.map((tab) => {
                 const Icon = tabIcons[tab.href];
                 const active = pathname.startsWith(tab.href);
@@ -90,7 +101,7 @@ export function MemberAppShell({
                     href={tab.href}
                     aria-current={active ? "page" : undefined}
                     className={cn(
-                      "flex flex-1 flex-col items-center gap-1 px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.14em]",
+                      "flex min-w-[4.25rem] flex-1 shrink-0 flex-col items-center gap-1 px-2 py-2 text-[10px] font-semibold uppercase tracking-[0.12em]",
                       active ? "text-brand" : "text-muted-foreground",
                     )}
                   >

@@ -39,6 +39,7 @@ export function AdminAccessScanner() {
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [manualPayload, setManualPayload] = useState("");
+  const [memberNumber, setMemberNumber] = useState("");
   const [busy, setBusy] = useState(false);
   const [lastResult, setLastResult] = useState<ScanResult | null>(null);
   const [checkIns, setCheckIns] = useState<CheckInRow[]>([]);
@@ -65,7 +66,7 @@ export function AdminAccessScanner() {
   }, []);
 
   const submitPayload = useCallback(
-    async (payload: string) => {
+    async (payload: string, options?: { memberNumber?: boolean }) => {
       const trimmed = payload.trim();
 
       if (!trimmed || busy) {
@@ -88,7 +89,11 @@ export function AdminAccessScanner() {
         const response = await fetch("/api/access/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ payload: trimmed }),
+          body: JSON.stringify(
+            options?.memberNumber
+              ? { memberNumber: trimmed }
+              : { payload: trimmed },
+          ),
         });
 
         const json = (await response.json()) as ScanResult & { error?: string };
@@ -177,6 +182,28 @@ export function AdminAccessScanner() {
             {cameraError ? (
               <p className="text-sm text-destructive">{cameraError}</p>
             ) : null}
+
+            <div className="space-y-2">
+              <Label htmlFor="memberNumber">Member number</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="memberNumber"
+                  inputMode="numeric"
+                  value={memberNumber}
+                  onChange={(event) => setMemberNumber(event.target.value)}
+                  placeholder="1234 5678"
+                />
+                <Button
+                  type="button"
+                  disabled={busy || memberNumber.replace(/\D/g, "").length !== 8}
+                  onClick={() =>
+                    void submitPayload(memberNumber, { memberNumber: true })
+                  }
+                >
+                  Check in
+                </Button>
+              </div>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="manualPayload">Manual code paste</Label>

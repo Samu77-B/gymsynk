@@ -14,6 +14,7 @@ import {
   requireSession,
   unauthorizedResponse,
 } from "@/lib/auth";
+import { ensureMemberNumber } from "@/lib/member-number";
 
 const photoUrlSchema = z
   .union([z.string().url().max(2048), z.literal("")])
@@ -107,6 +108,8 @@ export async function POST(request: Request) {
       isActive: true,
     })
     .returning();
+
+  await ensureMemberNumber(session.tenantId, staffMember.id);
 
   return Response.json({ staff: serializeStaffUser(staffMember) }, { status: 201 });
 }

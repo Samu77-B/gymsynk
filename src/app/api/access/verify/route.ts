@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -17,10 +17,16 @@ import {
   isDoorEntryEnabled,
 } from "@/lib/door-entry-feature";
 import { canScanDoorAccess, evaluateGymAccess } from "@/lib/gym-access";
+import { normalizeMemberNumber } from "@/lib/member-number";
 
-const verifySchema = z.object({
-  payload: z.string().min(10).max(4096),
-});
+const verifySchema = z.union([
+  z.object({
+    payload: z.string().min(10).max(4096),
+  }),
+  z.object({
+    memberNumber: z.string().min(1).max(16),
+  }),
+]);
 
 export async function POST(request: Request) {
   const session = await requireSession();
@@ -44,19 +50,42 @@ export async function POST(request: Request) {
   }
 
   let tokenUserId: string;
-  let tokenTenantId: string;
+  let checkInMethod: "qr" | "member_number" = "qr";
 
-  try {
-    const token = parseAccessQrPayload(parsed.data.payload);
-    const verified = await verifyAccessQrToken(token);
-    tokenUserId = verified.userId;
-    tokenTenantId = verified.tenantId;
-  } catch {
-    return jsonError("Invalid or expired QR code.", 400);
-  }
+  if ("memberNumber" in parsed.data) {
+    const memberNumber = normalizeMemberNumber(parsed.data.memberNumber);
 
-  if (tokenTenantId !== session.tenantId) {
-    return jsonError("This pass belongs to a different gym.", 400);
+    if (!memberNumber) {
+      return jsonError("Enter the 8-digit member number.", 400);
+    }
+
+    const matched = await getDb().query.users.findFirst({
+      where: and(
+        eq(users.tenantId, session.tenantId),
+        eq(users.memberNumber, memberNumber),
+      ),
+      columns: { id: true },
+    });
+
+    if (!matched) {
+      return jsonError("No one at this gym has that member number.", 404);
+    }
+
+    tokenUserId = matched.id;
+    checkInMethod = "member_number";
+  } else {
+    try {
+      const token = parseAccessQrPayload(parsed.data.payload);
+      const verified = await verifyAccessQrToken(token);
+
+      if (verified.tenantId !== session.tenantId) {
+        return jsonError("This pass belongs to a different gym.", 400);
+      }
+
+      tokenUserId = verified.userId;
+    } catch {
+      return jsonError("Invalid or expired QR code.", 400);
+    }
   }
 
   const member = await getDb().query.users.findFirst({
@@ -81,6 +110,7 @@ export async function POST(request: Request) {
     allowed: decision.allowed,
     denialReason: decision.allowed ? undefined : decision.reason,
     scannedByUserId: session.userId,
+    method: checkInMethod,
   });
 
   return NextResponse.json({

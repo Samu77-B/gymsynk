@@ -1,8 +1,20 @@
 import type { TenantFeatures } from "@/lib/tenant-features";
 
 export type MemberAppTab = {
-  href: "/member/book" | "/member/access" | "/member/membership";
-  label: "Bookings" | "Gym pass" | "Account";
+  href:
+    | "/member/book"
+    | "/member/workouts"
+    | "/member/nutrition"
+    | "/member/access"
+    | "/member/activity"
+    | "/member/membership";
+  label:
+    | "Bookings"
+    | "Workouts"
+    | "Nutrition"
+    | "Gym pass"
+    | "Activity"
+    | "Account";
 };
 
 /** Tabs a joined member sees. Order matches the phone bar. */
@@ -13,8 +25,12 @@ export function memberAppTabs(features: TenantFeatures): MemberAppTab[] {
     tabs.push({ href: "/member/book", label: "Bookings" });
   }
 
+  tabs.push({ href: "/member/workouts", label: "Workouts" });
+  tabs.push({ href: "/member/nutrition", label: "Nutrition" });
+
   if (features.doorEntry) {
     tabs.push({ href: "/member/access", label: "Gym pass" });
+    tabs.push({ href: "/member/activity", label: "Activity" });
   }
 
   if (features.memberships) {

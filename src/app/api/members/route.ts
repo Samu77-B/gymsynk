@@ -15,6 +15,7 @@ import {
   serializeMemberListItem,
 } from "@/lib/member-profile";
 import { membershipStatusLabel } from "@/lib/membership";
+import { ensureMemberNumber } from "@/lib/member-number";
 
 const createMemberSchema = z.object({
   fullName: z.string().min(2).max(255),
@@ -121,6 +122,8 @@ export async function POST(request: Request) {
       isActive: true,
     })
     .returning();
+
+  await ensureMemberNumber(session.tenantId, member.id);
 
   await db.insert(memberProfiles).values({
     tenantId: session.tenantId,

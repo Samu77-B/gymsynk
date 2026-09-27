@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import QRCode from "react-qr-code";
 
 import { Badge } from "@/components/ui/badge";
+import { formatMemberNumber } from "@/lib/member-number";
 import {
   Card,
   CardContent,
@@ -20,6 +21,7 @@ export function MemberAccessPass() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [qrValue, setQrValue] = useState<string | null>(null);
+  const [memberNumber, setMemberNumber] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
   const [accessPreview, setAccessPreview] = useState<AccessPreview | null>(
     null,
@@ -31,6 +33,7 @@ export function MemberAccessPass() {
       const json = (await response.json()) as {
         error?: string;
         qrValue?: string;
+        memberNumber?: string;
         fullName?: string;
         accessPreview?: AccessPreview;
       };
@@ -42,6 +45,7 @@ export function MemberAccessPass() {
       }
 
       setQrValue(json.qrValue ?? null);
+      setMemberNumber(json.memberNumber ?? null);
       setFullName(json.fullName ?? "");
       setAccessPreview(json.accessPreview ?? null);
       setLoading(false);
@@ -92,6 +96,19 @@ export function MemberAccessPass() {
           <div className="rounded-xl bg-white p-4 shadow-inner">
             <QRCode value={qrValue} size={220} />
           </div>
+          {memberNumber ? (
+            <div className="text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+                Member number
+              </p>
+              <p className="mt-1 font-mono text-2xl font-semibold tracking-[0.18em]">
+                {formatMemberNumber(memberNumber)}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Use this at the door keypad if the QR will not scan.
+              </p>
+            </div>
+          ) : null}
           {!allowed && accessPreview && !accessPreview.allowed ? (
             <p className="text-center text-sm text-destructive">
               {accessPreview.reason}

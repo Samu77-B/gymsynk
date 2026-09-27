@@ -74,7 +74,15 @@ export const checkInResultEnum = pgEnum("check_in_result", [
   "denied",
 ]);
 
-export const checkInMethodEnum = pgEnum("check_in_method", ["qr"]);
+export const checkInMethodEnum = pgEnum("check_in_method", [
+  "qr",
+  "member_number",
+]);
+
+export const gymGuideKindEnum = pgEnum("gym_guide_kind", [
+  "workout",
+  "nutrition",
+]);
 
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -104,6 +112,7 @@ export const users = pgTable(
     role: userRoleEnum("role").notNull(),
     passwordHash: text("password_hash"),
     stripeCustomerId: varchar("stripe_customer_id", { length: 255 }),
+    memberNumber: varchar("member_number", { length: 8 }),
     isActive: boolean("is_active").notNull().default(true),
     bio: text("bio"),
     photoUrl1: varchar("photo_url_1", { length: 2048 }),
@@ -113,6 +122,10 @@ export const users = pgTable(
   },
   (table) => [
     uniqueIndex("users_tenant_email_idx").on(table.tenantId, table.email),
+    uniqueIndex("users_tenant_member_number_idx").on(
+      table.tenantId,
+      table.memberNumber,
+    ),
   ],
 );
 
@@ -451,6 +464,27 @@ export const memberProfiles = pgTable("member_profiles", {
   paymentMethodNote: varchar("payment_method_note", { length: 255 }),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
+
+export const gymGuides = pgTable(
+  "gym_guides",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenants.id, { onDelete: "cascade" }),
+    kind: gymGuideKindEnum("kind").notNull(),
+    title: varchar("title", { length: 120 }).notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  },
+  (table) => [
+    index("gym_guides_tenant_kind_created_idx").on(
+      table.tenantId,
+      table.kind,
+      table.createdAt,
+    ),
+  ],
+);
 
 export const memberCheckIns = pgTable(
   "member_check_ins",

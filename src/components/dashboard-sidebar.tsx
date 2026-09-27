@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ClipboardList,
+  BookOpen,
   LayoutDashboard,
   Package,
   ScanLine,
@@ -83,6 +84,12 @@ const navItems: NavItem[] = [
     icon: Ticket,
     roles: ["owner", "admin"],
     feature: "sessionPacks",
+  },
+  {
+    href: "/admin/guides",
+    label: "Member guides",
+    icon: BookOpen,
+    roles: ["owner", "admin"],
   },
   {
     href: "/admin/settings",
