@@ -78,7 +78,6 @@ export function MemberAppShell({
         </main>
 
         <footer className="sticky bottom-0 z-30 border-t border-border bg-background pb-[max(0.25rem,env(safe-area-inset-bottom))]">
-          <PoweredByGymSynk className="justify-center pt-2" />
           {tabs.length > 0 ? (
             <nav aria-label="Member" className="flex">
               {tabs.map((tab) => {
@@ -102,6 +101,7 @@ export function MemberAppShell({
               })}
             </nav>
           ) : null}
+          <PoweredByGymSynk className="justify-center py-2" />
         </footer>
       </div>
     </div>
