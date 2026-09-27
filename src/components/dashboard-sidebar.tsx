@@ -6,11 +6,11 @@ import { usePathname } from "next/navigation";
 import {
   CalendarDays,
   ClipboardList,
-  CreditCard,
   LayoutDashboard,
   Package,
   ScanLine,
   Settings,
+  Smartphone,
   Ticket,
   UserCog,
   Users,
@@ -18,6 +18,7 @@ import {
 
 import { LogoutButton } from "@/components/logout-button";
 import { PoweredByGymSynk } from "@/components/powered-by-gymsynk";
+import { memberAppHref } from "@/lib/member-app";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
 import type { TenantBrand } from "@/lib/tenant-branding";
@@ -36,7 +37,7 @@ const navItems: NavItem[] = [
     href: "/",
     label: "Dashboard",
     icon: LayoutDashboard,
-    roles: ["owner", "admin", "trainer", "member"],
+    roles: ["owner", "admin", "trainer"],
   },
   {
     href: "/admin/members",
@@ -82,27 +83,6 @@ const navItems: NavItem[] = [
     icon: Ticket,
     roles: ["owner", "admin"],
     feature: "sessionPacks",
-  },
-  {
-    href: "/member/membership",
-    label: "Membership",
-    icon: CreditCard,
-    roles: ["member", "owner", "admin"],
-    feature: "memberships",
-  },
-  {
-    href: "/member/book",
-    label: "Book classes",
-    icon: CalendarDays,
-    roles: ["owner", "admin", "trainer", "member"],
-    feature: "classBooking",
-  },
-  {
-    href: "/member/access",
-    label: "Gym pass",
-    icon: ScanLine,
-    roles: ["owner", "admin", "trainer", "member"],
-    feature: "doorEntry",
   },
   {
     href: "/admin/settings",
@@ -154,6 +134,7 @@ export function DashboardSidebar({
       item.roles.includes(session.role) &&
       (!item.feature || features[item.feature]),
   );
+  const previewHref = memberAppHref(features);
 
   return (
     <aside
@@ -198,6 +179,21 @@ export function DashboardSidebar({
             </Link>
           );
         })}
+        {previewHref ? (
+          <div className="mt-4 border-t border-sidebar-border pt-3">
+            <p className="px-3 pb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground">
+              For members
+            </p>
+            <Link
+              href={previewHref}
+              onClick={onNavigate}
+              className="flex items-center gap-3 rounded-lg border-l-[3px] border-transparent px-3 py-2 text-sm font-medium text-sidebar-foreground/70 transition-colors hover:bg-sidebar-accent hover:text-sidebar-foreground"
+            >
+              <Smartphone className="size-4 shrink-0 text-muted-foreground" />
+              Member app
+            </Link>
+          </div>
+        ) : null}
       </nav>
 
       <div className="border-t border-sidebar-border px-3 py-4">

@@ -3,7 +3,6 @@ import {
   ArrowUpRight,
   CalendarDays,
   ClipboardList,
-  CreditCard,
   Package,
   ScanLine,
   Settings,
@@ -26,7 +25,7 @@ const quickLinks: Array<{
   title: string;
   description: string;
   icon: typeof CalendarDays;
-  roles: Array<"owner" | "admin" | "trainer" | "member">;
+  roles: Array<"owner" | "admin" | "trainer">;
   feature?: TenantFeatureKey;
 }> = [
   {
@@ -59,35 +58,11 @@ const quickLinks: Array<{
     feature: "sessionPacks",
   },
   {
-    href: "/member/membership",
-    title: "Membership",
-    description: "Plans, billing, and subscription status.",
-    icon: CreditCard,
-    roles: ["owner", "admin", "member"],
-    feature: "memberships",
-  },
-  {
-    href: "/member/book",
-    title: "Book a class",
-    description: "Reserve your next session.",
-    icon: CalendarDays,
-    roles: ["owner", "admin", "trainer", "member"],
-    feature: "classBooking",
-  },
-  {
     href: "/admin/access",
     title: "Door entry",
     description: "Scan member QR passes at reception.",
     icon: ScanLine,
     roles: ["owner", "admin", "trainer"],
-    feature: "doorEntry",
-  },
-  {
-    href: "/member/access",
-    title: "Gym pass",
-    description: "Your QR code for door entry.",
-    icon: ScanLine,
-    roles: ["owner", "admin", "trainer", "member"],
     feature: "doorEntry",
   },
   {
@@ -116,6 +91,23 @@ export default async function HomePage() {
     sessionPacks: false,
     doorEntry: false,
   };
+
+  if (session.role === "member") {
+    return (
+      <DashboardShell session={session} brand={brand} features={tenantFeatures}>
+        <div className="space-y-2">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Hello, {session.fullName.split(" ")[0]}
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Book a class, show your gym pass, or check your membership at{" "}
+            {brand.name}.
+          </p>
+        </div>
+      </DashboardShell>
+    );
+  }
+
   const checkInsToday =
     tenantFeatures.doorEntry && canScanDoorAccess(session.role)
       ? await countCheckInsToday(session.tenantId)

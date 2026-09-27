@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { DashboardHeader } from "@/components/dashboard-header";
 import { DashboardPageTransition } from "@/components/dashboard-page-transition";
 import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { MemberAppShell } from "@/components/member-app-shell";
 import { TenantBrandStyles } from "@/components/tenant-brand-styles";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
@@ -25,6 +26,8 @@ export function DashboardShell({
 }) {
   const pathname = usePathname();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const memberApp =
+    session.role === "member" || pathname.startsWith("/member");
 
   useEffect(() => {
     setMobileNavOpen(false);
@@ -42,6 +45,17 @@ export function DashboardShell({
       document.body.style.overflow = previousOverflow;
     };
   }, [mobileNavOpen]);
+
+  if (memberApp) {
+    return (
+      <>
+        <TenantBrandStyles brand={brand} />
+        <MemberAppShell session={session} brand={brand} features={features}>
+          {children}
+        </MemberAppShell>
+      </>
+    );
+  }
 
   return (
     <>
