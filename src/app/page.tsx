@@ -108,13 +108,17 @@ export default async function HomePage() {
     );
   }
 
+  // Captured before the await below. TypeScript drops the member narrowing
+  // on session.role once a later await runs.
+  const role = session.role;
+
   const checkInsToday =
-    tenantFeatures.doorEntry && canScanDoorAccess(session.role)
+    tenantFeatures.doorEntry && canScanDoorAccess(role)
       ? await countCheckInsToday(session.tenantId)
       : null;
   const links = quickLinks.filter(
     (link) =>
-      link.roles.includes(session.role) &&
+      link.roles.includes(role) &&
       (!link.feature || tenantFeatures[link.feature]),
   );
 
