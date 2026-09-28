@@ -475,6 +475,8 @@ export const gymGuides = pgTable(
     kind: gymGuideKindEnum("kind").notNull(),
     title: varchar("title", { length: 120 }).notNull(),
     body: text("body").notNull(),
+    mediaUrl: text("media_url"),
+    mediaType: varchar("media_type", { length: 16 }),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [

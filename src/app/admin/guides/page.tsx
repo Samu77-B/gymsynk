@@ -19,8 +19,9 @@ export default async function AdminGuidesPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Member guides</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Workout and meal ideas for people who have joined. They show on the
-          Workouts and Nutrition tabs in the member app.
+          Workout and meal ideas for people who have joined. Add a photo or
+          video if you want. They show on the Workouts and Nutrition tabs in
+          the member app.
         </p>
       </div>
       <AdminGuidesEditor />

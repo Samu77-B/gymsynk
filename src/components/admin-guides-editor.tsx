@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { upload } from "@vercel/blob/client";
 
+import { GuideMedia } from "@/components/guide-media";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -12,6 +14,12 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  GUIDE_MEDIA_ACCEPT,
+  MAX_BLOB_MEDIA_BYTES,
+  MAX_INLINE_MEDIA_BYTES,
+  mediaKindFor,
+} from "@/lib/guide-media";
 
 type GuideKind = "workout" | "nutrition";
 
@@ -19,6 +27,8 @@ type Guide = {
   id: string;
   title: string;
   body: string;
+  mediaUrl: string | null;
+  mediaType: string | null;
 };
 
 const copy: Record<
@@ -42,6 +52,8 @@ function GuideSection({ kind }: { kind: GuideKind }) {
   const [guides, setGuides] = useState<Guide[]>([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [mediaFile, setMediaFile] = useState<File | null>(null);
+  const [mediaKey, setMediaKey] = useState(0);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,10 +86,60 @@ function GuideSection({ kind }: { kind: GuideKind }) {
     setError(null);
 
     try {
+      const formData = new FormData();
+      formData.set("kind", kind);
+      formData.set("title", title);
+      formData.set("body", body);
+
+      if (mediaFile) {
+        const mediaKind = mediaKindFor(mediaFile.type);
+
+        if (!mediaKind) {
+          setError("Use a JPG, PNG, WebP, GIF, MP4, or WebM file.");
+          return;
+        }
+
+        if (mediaFile.size > MAX_BLOB_MEDIA_BYTES) {
+          setError("Keep photos and videos under 50 MB.");
+          return;
+        }
+
+        let storedOnBlob = false;
+
+        try {
+          const blob = await upload(
+            `guides/${crypto.randomUUID()}-${mediaFile.name}`,
+            mediaFile,
+            {
+              access: "public",
+              handleUploadUrl: "/api/guides/upload",
+              multipart: true,
+            },
+          );
+          formData.set("mediaUrl", blob.url);
+          formData.set("mediaType", mediaKind);
+          storedOnBlob = true;
+        } catch {
+          storedOnBlob = false;
+        }
+
+        if (!storedOnBlob) {
+          if (mediaKind === "video" || mediaFile.size > MAX_INLINE_MEDIA_BYTES) {
+            setError(
+              mediaKind === "video"
+                ? "That video could not be uploaded. Try a shorter MP4, or a photo."
+                : "That photo is too large. Keep it under 1.5 MB.",
+            );
+            return;
+          }
+
+          formData.set("media", mediaFile);
+        }
+      }
+
       const response = await fetch("/api/guides", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kind, title, body }),
+        body: formData,
       });
       const json = (await response.json()) as { error?: string };
 
@@ -88,6 +150,8 @@ function GuideSection({ kind }: { kind: GuideKind }) {
 
       setTitle("");
       setBody("");
+      setMediaFile(null);
+      setMediaKey((value) => value + 1);
       await load();
     } finally {
       setSaving(false);
@@ -116,7 +180,9 @@ function GuideSection({ kind }: { kind: GuideKind }) {
       <Card className="border-border/60 shadow-sm">
         <CardHeader>
           <CardTitle>Add one</CardTitle>
-          <CardDescription>A short title and the suggestion itself.</CardDescription>
+          <CardDescription>
+            A short title, the suggestion, and an optional photo or video.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <form className="space-y-4" onSubmit={(event) => void addGuide(event)}>
@@ -141,6 +207,22 @@ function GuideSection({ kind }: { kind: GuideKind }) {
                 maxLength={8000}
                 className="w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${kind}-media`}>Photo or video</Label>
+              <Input
+                key={mediaKey}
+                id={`${kind}-media`}
+                type="file"
+                accept={GUIDE_MEDIA_ACCEPT}
+                onChange={(event) => {
+                  setMediaFile(event.target.files?.[0] ?? null);
+                }}
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional. JPG, PNG, WebP, GIF, MP4, or WebM · max 50 MB
+                {mediaFile ? ` · ${mediaFile.name}` : ""}
+              </p>
             </div>
             <Button type="submit" disabled={saving}>
               {saving ? "Saving…" : "Publish"}
@@ -172,9 +254,14 @@ function GuideSection({ kind }: { kind: GuideKind }) {
                   </Button>
                 </CardHeader>
                 <CardContent>
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                  <p className="whitespace-pre-wrap text-sm text-foreground">
                     {guide.body}
                   </p>
+                  <GuideMedia
+                    url={guide.mediaUrl}
+                    type={guide.mediaType}
+                    title={guide.title}
+                  />
                 </CardContent>
               </Card>
             </li>

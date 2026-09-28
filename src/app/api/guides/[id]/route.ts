@@ -1,3 +1,4 @@
+import { del } from "@vercel/blob";
 import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 
@@ -10,6 +11,7 @@ import {
   getSession,
   unauthorizedResponse,
 } from "@/lib/auth";
+import { isVercelBlobUrl } from "@/lib/guide-media";
 
 export async function DELETE(
   _request: Request,
@@ -30,10 +32,18 @@ export async function DELETE(
   const [removed] = await getDb()
     .delete(gymGuides)
     .where(and(eq(gymGuides.id, id), eq(gymGuides.tenantId, session.tenantId)))
-    .returning({ id: gymGuides.id });
+    .returning({ id: gymGuides.id, mediaUrl: gymGuides.mediaUrl });
 
   if (!removed) {
     return jsonError("That guide was not found.", 404);
+  }
+
+  if (removed.mediaUrl && isVercelBlobUrl(removed.mediaUrl)) {
+    try {
+      await del(removed.mediaUrl);
+    } catch (error) {
+      console.error("Could not delete guide media:", error);
+    }
   }
 
   return NextResponse.json({ ok: true });

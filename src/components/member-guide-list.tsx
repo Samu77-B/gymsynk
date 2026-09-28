@@ -1,5 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 
+import { GuideMedia } from "@/components/guide-media";
 import { getDb } from "@/db";
 import { gymGuides } from "@/db/schema";
 
@@ -15,7 +16,13 @@ export async function MemberGuideList({
   const guides = await getDb().query.gymGuides.findMany({
     where: and(eq(gymGuides.tenantId, tenantId), eq(gymGuides.kind, kind)),
     orderBy: [desc(gymGuides.createdAt)],
-    columns: { id: true, title: true, body: true },
+    columns: {
+      id: true,
+      title: true,
+      body: true,
+      mediaUrl: true,
+      mediaType: true,
+    },
   });
 
   if (guides.length === 0) {
@@ -27,9 +34,14 @@ export async function MemberGuideList({
       {guides.map((guide) => (
         <li key={guide.id} className="rounded-xl border border-border/60 p-4">
           <h2 className="font-semibold">{guide.title}</h2>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-foreground">
             {guide.body}
           </p>
+          <GuideMedia
+            url={guide.mediaUrl}
+            type={guide.mediaType}
+            title={guide.title}
+          />
         </li>
       ))}
     </ul>
