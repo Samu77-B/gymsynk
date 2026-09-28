@@ -12,7 +12,7 @@ You are signed in as the gym owner. Some items only appear when that feature is 
 | **Door entry** | Reception scanner. Check a member in with their gym pass. Shows only if door entry is on. |
 | **Group training** | Class types and session packs you sell (for example 10 classes). Shows only if session packs are on. |
 | **Member packs** | Which member has credits left on a pack. Shows only if session packs are on. |
-| **Member guides** | Workout and meal ideas the owner publishes for members, with an optional photo or video. |
+| **Member guides** | Workout and meal ideas the owner publishes for members, with an optional photo or video. Existing plans can be edited. |
 | **Settings** | Turn features on or off, set the website embed, and upload the logo and brand colour. |
 | **Member app** | Opens the phone app a joined member sees. Not part of the office menu. |
 

@@ -1,5 +1,4 @@
 import { and, desc, eq } from "drizzle-orm";
-import { put } from "@vercel/blob";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -12,16 +11,9 @@ import {
   getSession,
   unauthorizedResponse,
 } from "@/lib/auth";
-import {
-  fileToDataUrl,
-  isGuideMediaUrl,
-  MAX_INLINE_MEDIA_BYTES,
-  mediaKindFor,
-  type GuideMediaKind,
-} from "@/lib/guide-media";
+import { resolveGuideMediaFromForm } from "@/lib/guide-media-store";
 
 const kindSchema = z.enum(["workout", "nutrition"]);
-const mediaTypeSchema = z.enum(["image", "video"]);
 
 export async function GET(request: Request) {
   const session = await getSession();
@@ -78,50 +70,10 @@ export async function POST(request: Request) {
     return jsonError("Add a title and the details.");
   }
 
-  let mediaUrl: string | null = null;
-  let mediaType: GuideMediaKind | null = null;
+  const media = await resolveGuideMediaFromForm(formData, session.tenantId);
 
-  const postedUrl = formData.get("mediaUrl");
-  const postedType = mediaTypeSchema.safeParse(formData.get("mediaType"));
-
-  if (typeof postedUrl === "string" && postedUrl.trim()) {
-    if (!isGuideMediaUrl(postedUrl) || !postedType.success) {
-      return jsonError("That photo or video could not be used.");
-    }
-
-    mediaUrl = postedUrl.trim();
-    mediaType = postedType.data;
-  } else {
-    const fileValue = formData.get("media");
-
-    if (fileValue instanceof File && fileValue.size > 0) {
-      const kindFromFile = mediaKindFor(fileValue.type);
-
-      if (!kindFromFile) {
-        return jsonError("Use a JPG, PNG, WebP, GIF, MP4, or WebM file.");
-      }
-
-      mediaType = kindFromFile;
-
-      try {
-        mediaUrl = await storeUploadedFile(fileValue, session.tenantId);
-      } catch (error) {
-        const code = error instanceof Error ? error.message : "";
-
-        if (code === "too-large") {
-          return jsonError("Keep photos under 1.5 MB, or videos under 50 MB.");
-        }
-
-        if (code === "video-needs-storage") {
-          return jsonError(
-            "Videos need file storage. Photos still save if they are under 1.5 MB.",
-          );
-        }
-
-        console.error("Guide media save failed:", error);
-        return jsonError("Could not save that photo or video.", 500);
-      }
-    }
+  if (media.provided && "error" in media) {
+    return jsonError(media.error);
   }
 
   const [guide] = await getDb()
@@ -131,33 +83,10 @@ export async function POST(request: Request) {
       kind: kind.data,
       title: title.data,
       body: body.data,
-      mediaUrl,
-      mediaType,
+      mediaUrl: media.provided ? media.mediaUrl : null,
+      mediaType: media.provided ? media.mediaType : null,
     })
     .returning();
 
   return NextResponse.json({ guide }, { status: 201 });
-}
-
-async function storeUploadedFile(file: File, tenantId: string) {
-  if (process.env.BLOB_READ_WRITE_TOKEN) {
-    const blob = await put(
-      `guides/${tenantId}/${crypto.randomUUID()}-${file.name}`,
-      file,
-      { access: "public", addRandomSuffix: true },
-    );
-    return blob.url;
-  }
-
-  if (file.size > MAX_INLINE_MEDIA_BYTES) {
-    throw new Error("too-large");
-  }
-
-  const kind = mediaKindFor(file.type);
-
-  if (kind === "video") {
-    throw new Error("video-needs-storage");
-  }
-
-  return fileToDataUrl(file);
 }
