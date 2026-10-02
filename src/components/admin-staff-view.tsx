@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PhotoUrlField } from "@/components/photo-url-field";
 import {
   Table,
   TableBody,
@@ -325,21 +326,18 @@ export function AdminStaffView() {
               />
             </div>
             {[1, 2, 3].map((index) => (
-              <div key={index} className="space-y-2">
-                <Label htmlFor={`addPhoto${index}`}>Photo {index} URL</Label>
-                <Input
-                  id={`addPhoto${index}`}
-                  type="url"
-                  value={addForm[`photoUrl${index}` as keyof StaffForm] as string}
-                  onChange={(event) =>
-                    setAddForm((form) => ({
-                      ...form,
-                      [`photoUrl${index}`]: event.target.value,
-                    }))
-                  }
-                  placeholder="https://..."
-                />
-              </div>
+              <PhotoUrlField
+                key={index}
+                id={`addPhoto${index}`}
+                label={`Photo ${index}`}
+                value={addForm[`photoUrl${index}` as keyof StaffForm] as string}
+                onChange={(url) =>
+                  setAddForm((form) => ({
+                    ...form,
+                    [`photoUrl${index}`]: url,
+                  }))
+                }
+              />
             ))}
             <div className="md:col-span-2">
               <Button type="submit">Add staff member</Button>
@@ -503,21 +501,20 @@ export function AdminStaffView() {
                 />
               </div>
               {[1, 2, 3].map((index) => (
-                <div key={index} className="space-y-2">
-                  <Label htmlFor={`editPhoto${index}`}>Photo {index} URL</Label>
-                  <Input
-                    id={`editPhoto${index}`}
-                    type="url"
-                    value={editForm[`photoUrl${index}` as keyof StaffForm] as string}
-                    onChange={(event) =>
-                      setEditForm((form) => ({
-                        ...form,
-                        [`photoUrl${index}`]: event.target.value,
-                      }))
-                    }
-                    placeholder="https://..."
-                  />
-                </div>
+                <PhotoUrlField
+                  key={index}
+                  id={`editPhoto${index}`}
+                  label={`Photo ${index}`}
+                  value={
+                    editForm[`photoUrl${index}` as keyof StaffForm] as string
+                  }
+                  onChange={(url) =>
+                    setEditForm((form) => ({
+                      ...form,
+                      [`photoUrl${index}`]: url,
+                    }))
+                  }
+                />
               ))}
               <div className="flex flex-wrap gap-2 md:col-span-2">
                 <Button type="submit">Save changes</Button>

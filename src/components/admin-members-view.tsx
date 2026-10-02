@@ -3,6 +3,7 @@
 import { format, parseISO } from "date-fns";
 import { useEffect, useState } from "react";
 
+import { PhotoUrlField } from "@/components/photo-url-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -736,22 +737,20 @@ export function AdminMembersView({ tenantSlug }: { tenantSlug: string }) {
                     }
                   />
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="memberPhotoUrl">Member photo URL (check-in ID)</Label>
-                  <Input
+                <div className="md:col-span-2">
+                  <PhotoUrlField
                     id="memberPhotoUrl"
-                    type="url"
+                    label="Member photo (check-in ID)"
                     value={editState.profile.memberPhotoUrl}
-                    onChange={(event) =>
+                    onChange={(url) =>
                       setEditState({
                         ...editState,
                         profile: {
                           ...editState.profile,
-                          memberPhotoUrl: event.target.value,
+                          memberPhotoUrl: url,
                         },
                       })
                     }
-                    placeholder="https://..."
                   />
                 </div>
               </Section>

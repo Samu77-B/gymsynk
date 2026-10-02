@@ -18,6 +18,7 @@ import {
   type MemberProfilePayload,
 } from "@/lib/member-profile";
 import { membershipStatusLabel } from "@/lib/membership";
+import { profilePhotoUrlSchema } from "@/lib/profile-photo";
 
 const profileSchema = z.object({
   legalName: z.string().max(255).optional(),
@@ -36,9 +37,7 @@ const profileSchema = z.object({
     .optional(),
   medicalNotes: z.string().max(5000).optional().nullable(),
   accessCardId: z.string().max(100).optional(),
-  memberPhotoUrl: z
-    .union([z.string().url().max(2048), z.literal("")])
-    .optional(),
+  memberPhotoUrl: profilePhotoUrlSchema,
   billingSameAsHome: z.boolean().optional(),
   billingAddressLine1: z.string().max(255).optional(),
   billingAddressLine2: z.string().max(255).optional(),
@@ -191,9 +190,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       medicalNotes:
         parsed.data.profile.medicalNotes ?? current.medicalNotes ?? "",
       memberPhotoUrl:
-        parsed.data.profile.memberPhotoUrl === ""
-          ? ""
-          : (parsed.data.profile.memberPhotoUrl ?? current.memberPhotoUrl),
+        parsed.data.profile.memberPhotoUrl !== undefined
+          ? (parsed.data.profile.memberPhotoUrl ?? "")
+          : current.memberPhotoUrl,
       joiningFeeAmount:
         parsed.data.profile.joiningFeeAmount ?? current.joiningFeeAmount ?? "",
     };

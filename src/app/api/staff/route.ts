@@ -15,12 +15,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/auth";
 import { ensureMemberNumber } from "@/lib/member-number";
-
-const photoUrlSchema = z
-  .union([z.string().url().max(2048), z.literal("")])
-  .optional()
-  .nullable()
-  .transform((value) => (value ? value : null));
+import { profilePhotoUrlSchema } from "@/lib/profile-photo";
 
 const createStaffSchema = z.object({
   fullName: z.string().min(2).max(255),
@@ -28,9 +23,9 @@ const createStaffSchema = z.object({
   phone: z.string().max(50).optional().nullable(),
   role: z.enum(["trainer", "admin"]),
   bio: z.string().max(5000).optional().nullable(),
-  photoUrl1: photoUrlSchema,
-  photoUrl2: photoUrlSchema,
-  photoUrl3: photoUrlSchema,
+  photoUrl1: profilePhotoUrlSchema,
+  photoUrl2: profilePhotoUrlSchema,
+  photoUrl3: profilePhotoUrlSchema,
 });
 
 export async function GET() {

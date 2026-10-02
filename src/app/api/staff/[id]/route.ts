@@ -15,6 +15,7 @@ import {
   requireSession,
   unauthorizedResponse,
 } from "@/lib/auth";
+import { profilePhotoUrlSchema } from "@/lib/profile-photo";
 
 const updateStaffSchema = z.object({
   fullName: z.string().min(2).max(255).optional(),
@@ -23,21 +24,9 @@ const updateStaffSchema = z.object({
   role: z.enum(["trainer", "admin"]).optional(),
   isActive: z.boolean().optional(),
   bio: z.string().max(5000).optional().nullable(),
-  photoUrl1: z
-    .union([z.string().url().max(2048), z.literal("")])
-    .optional()
-    .nullable()
-    .transform((value) => (value === undefined ? undefined : value || null)),
-  photoUrl2: z
-    .union([z.string().url().max(2048), z.literal("")])
-    .optional()
-    .nullable()
-    .transform((value) => (value === undefined ? undefined : value || null)),
-  photoUrl3: z
-    .union([z.string().url().max(2048), z.literal("")])
-    .optional()
-    .nullable()
-    .transform((value) => (value === undefined ? undefined : value || null)),
+  photoUrl1: profilePhotoUrlSchema,
+  photoUrl2: profilePhotoUrlSchema,
+  photoUrl3: profilePhotoUrlSchema,
 });
 
 type RouteContext = {
