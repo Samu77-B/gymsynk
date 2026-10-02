@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 export function JoinSuccessClient() {
   const searchParams = useSearchParams();
   const sessionId = searchParams.get("session_id");
+  const tenantSlug = searchParams.get("tenant") ?? undefined;
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,10 +22,10 @@ export function JoinSuccessClient() {
         return;
       }
 
-      const response = await fetch("/api/membership/complete", {
+      const response = await fetch("/api/checkout/complete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({ sessionId, tenantSlug }),
       });
 
       const data = await response.json();
@@ -35,12 +36,11 @@ export function JoinSuccessClient() {
         return;
       }
 
-      setLoading(false);
-      window.location.href = "/member/membership";
+      window.location.href = data.redirectTo ?? "/member/membership";
     }
 
     void completeSignup();
-  }, [sessionId]);
+  }, [sessionId, tenantSlug]);
 
   return (
     <Card className="mx-auto w-full max-w-md">

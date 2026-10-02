@@ -19,6 +19,7 @@ const updatePackSchema = z.object({
   note: z.string().trim().max(500).optional().nullable(),
   sortOrder: z.coerce.number().int().min(0).max(100).optional(),
   active: z.boolean().optional(),
+  stripePriceId: z.string().trim().max(255).optional().nullable(),
 });
 
 type RouteContext = {
@@ -93,6 +94,10 @@ export async function PATCH(request: Request, context: RouteContext) {
               : undefined,
           sortOrder: parsed.data.sortOrder,
           active: parsed.data.active,
+          stripePriceId:
+            parsed.data.stripePriceId !== undefined
+              ? parsed.data.stripePriceId?.trim() || null
+              : undefined,
         }).filter(([, value]) => value !== undefined),
       ),
     )

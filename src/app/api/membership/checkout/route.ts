@@ -9,6 +9,8 @@ import {
   getTenantBySlug,
 } from "@/lib/membership-provision";
 import { getAppUrl, getStripe } from "@/lib/stripe";
+import { stripeConnectRequestOptions } from "@/lib/stripe-connect";
+import { tenantAcceptsMemberPayments } from "@/lib/tenant-billing";
 import { resolveTenantFeatures } from "@/lib/tenant-features";
 
 const checkoutSchema = z.object({
@@ -60,37 +62,50 @@ export async function POST(request: Request) {
     );
   }
 
+  if (!tenantAcceptsMemberPayments(tenant)) {
+    return jsonError(
+      "Online payments are not set up for this gym yet. Please contact the gym.",
+      503,
+    );
+  }
+
   const stripe = getStripe();
   const appUrl = getAppUrl();
+  const connectOptions = stripeConnectRequestOptions(tenant);
 
-  const session = await stripe.checkout.sessions.create({
-    mode: "subscription",
-    customer_email: parsed.data.email,
-    line_items: [
-      {
-        price: plan.stripePriceId,
-        quantity: 1,
+  const session = await stripe.checkout.sessions.create(
+    {
+      mode: "subscription",
+      customer_email: parsed.data.email,
+      line_items: [
+        {
+          price: plan.stripePriceId,
+          quantity: 1,
+        },
+      ],
+      subscription_data: {
+        trial_period_days: plan.trialDays,
+        metadata: {
+          checkoutKind: "membership",
+          tenantId: tenant.id,
+          planId: plan.id,
+          fullName: parsed.data.fullName,
+          email: parsed.data.email,
+        },
       },
-    ],
-    subscription_data: {
-      trial_period_days: plan.trialDays,
       metadata: {
+        checkoutKind: "membership",
         tenantId: tenant.id,
         planId: plan.id,
         fullName: parsed.data.fullName,
         email: parsed.data.email,
+        phone: parsed.data.phone ?? "",
       },
+      success_url: `${appUrl}/join/success?session_id={CHECKOUT_SESSION_ID}&tenant=${tenant.slug}`,
+      cancel_url: `${appUrl}/join?tenant=${tenant.slug}&cancelled=1`,
     },
-    metadata: {
-      tenantId: tenant.id,
-      planId: plan.id,
-      fullName: parsed.data.fullName,
-      email: parsed.data.email,
-      phone: parsed.data.phone ?? "",
-    },
-    success_url: `${appUrl}/join/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${appUrl}/join?tenant=${tenant.slug}&cancelled=1`,
-  });
+    connectOptions,
+  );
 
   if (!session.url) {
     return jsonError("Could not start checkout", 500);

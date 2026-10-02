@@ -2,11 +2,13 @@ import { eq } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { memberships } from "@/db/schema";
-import {
-  provisionMembershipFromCheckout,
-  syncSubscription,
-} from "@/lib/membership-provision";
+import { handleStripeCheckoutCompleted } from "@/lib/checkout-complete";
+import { syncSubscription } from "@/lib/membership-provision";
 import { getStripe } from "@/lib/stripe";
+import {
+  syncConnectAccountStatus,
+  syncPlatformSubscription,
+} from "@/lib/stripe-connect";
 import { getInvoiceSubscriptionId } from "@/lib/stripe-subscription";
 
 export async function POST(request: Request) {
@@ -42,14 +44,18 @@ export async function POST(request: Request) {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object;
-        if (session.mode === "subscription") {
-          await provisionMembershipFromCheckout(session);
-        }
+        await handleStripeCheckoutCompleted(session);
+        break;
+      }
+      case "account.updated": {
+        const account = event.data.object;
+        await syncConnectAccountStatus(account.id);
         break;
       }
       case "customer.subscription.updated":
       case "customer.subscription.deleted": {
         const subscription = event.data.object;
+        await syncPlatformSubscription(subscription);
         await syncSubscription(subscription);
         break;
       }

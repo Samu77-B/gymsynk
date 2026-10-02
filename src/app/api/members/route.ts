@@ -2,7 +2,14 @@ import { and, asc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { getDb } from "@/db";
-import { memberProfiles, membershipMembers, memberships, users } from "@/db/schema";
+import {
+  memberProfiles,
+  membershipMembers,
+  memberships,
+  tenants,
+  users,
+} from "@/db/schema";
+import { sendMemberWelcomeEmail } from "@/lib/email";
 import { jsonError, parseJson } from "@/lib/api";
 import {
   canManageStaff,
@@ -131,9 +138,31 @@ export async function POST(request: Request) {
     legalName: parsed.data.fullName,
   });
 
+  const tenant = await db.query.tenants.findFirst({
+    where: eq(tenants.id, session.tenantId),
+    columns: { name: true, slug: true, primaryColor: true },
+  });
+
+  let welcomeEmail: { sent: boolean; error?: string } = { sent: false };
+
+  if (tenant) {
+    const emailResult = await sendMemberWelcomeEmail({
+      to: member.email,
+      memberName: member.fullName,
+      gymName: tenant.name,
+      tenantSlug: tenant.slug,
+      primaryColor: tenant.primaryColor,
+    });
+
+    welcomeEmail = emailResult.error
+      ? { sent: false, error: emailResult.error }
+      : { sent: true };
+  }
+
   return Response.json(
     {
       member: serializeMemberListItem(member, null, null),
+      welcomeEmail,
     },
     { status: 201 },
   );

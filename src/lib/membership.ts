@@ -4,8 +4,11 @@ import { getDb } from "@/db";
 import {
   membershipMembers,
   memberships,
+  tenants,
   type membershipStatusEnum,
 } from "@/db/schema";
+import { listPacksForUser } from "@/lib/packs";
+import { resolveBillingModel } from "@/lib/tenant-billing";
 
 const bookableStatuses: Array<
   (typeof membershipStatusEnum.enumValues)[number]
@@ -35,6 +38,25 @@ export async function getActiveMembershipForUser(
   return link.membership;
 }
 
+export async function memberHasSpendableCredits(
+  tenantId: string,
+  userId: string,
+) {
+  const packs = await listPacksForUser(tenantId, userId);
+
+  return packs.some(
+    (entry) =>
+      entry.pack.status === "active" &&
+      (entry.unlimited || (entry.remaining ?? 0) > 0),
+  );
+}
+
+function membershipBookable(membership: NonNullable<
+  Awaited<ReturnType<typeof getActiveMembershipForUser>>
+>) {
+  return bookableStatuses.includes(membership.status);
+}
+
 export async function userCanBookClasses(
   tenantId: string,
   userId: string,
@@ -44,16 +66,32 @@ export async function userCanBookClasses(
     return { allowed: true as const };
   }
 
-  const membership = await getActiveMembershipForUser(tenantId, userId);
+  const db = getDb();
+  const tenant = await db.query.tenants.findFirst({
+    where: eq(tenants.id, tenantId),
+  });
 
-  if (!membership) {
-    return {
-      allowed: false as const,
-      reason: "No membership found. Join at /join to book classes.",
-    };
+  if (!tenant) {
+    return { allowed: false as const, reason: "Gym not found." };
   }
 
-  if (!bookableStatuses.includes(membership.status)) {
+  const billingModel = resolveBillingModel(tenant);
+  const membership = await getActiveMembershipForUser(tenantId, userId);
+
+  if (billingModel === "credits_only") {
+    return { allowed: true as const, billingModel };
+  }
+
+  if (!membership) {
+    const reason =
+      billingModel === "hybrid"
+        ? "No membership found. Join at /join, then buy class credits to book."
+        : "No membership found. Join at /join to book classes.";
+
+    return { allowed: false as const, reason };
+  }
+
+  if (!membershipBookable(membership)) {
     return {
       allowed: false as const,
       reason:
@@ -63,7 +101,55 @@ export async function userCanBookClasses(
     };
   }
 
-  return { allowed: true as const, membership };
+  if (billingModel === "hybrid" && tenant.featureSessionPacks) {
+    const hasCredits = await memberHasSpendableCredits(tenantId, userId);
+
+    if (!hasCredits) {
+      return {
+        allowed: false as const,
+        reason:
+          "You need class credits to book. Buy a credit package to continue.",
+        buyCredits: true as const,
+      };
+    }
+  }
+
+  return { allowed: true as const, membership, billingModel };
+}
+
+/** Used when confirming a booking — credits-only gyms must spend a credit. */
+export async function requireCreditForConfirmedBooking(
+  tenantId: string,
+  userId: string,
+) {
+  const db = getDb();
+  const tenant = await db.query.tenants.findFirst({
+    where: eq(tenants.id, tenantId),
+  });
+
+  if (!tenant) {
+    return { ok: false as const, reason: "Gym not found." };
+  }
+
+  const billingModel = resolveBillingModel(tenant);
+
+  if (
+    billingModel === "credits_only" ||
+    (billingModel === "hybrid" && tenant.featureSessionPacks)
+  ) {
+    const hasCredits = await memberHasSpendableCredits(tenantId, userId);
+
+    if (!hasCredits) {
+      return {
+        ok: false as const,
+        reason:
+          "You are out of class credits. Buy a credit package to book this class.",
+        buyCredits: true as const,
+      };
+    }
+  }
+
+  return { ok: true as const };
 }
 
 export async function getMembershipSeatUsage(membershipId: string) {

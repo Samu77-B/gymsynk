@@ -10,13 +10,28 @@ export const RESET_WEEKLY_CLASS_TYPES = [
     capacity: 14,
   },
   {
+    title: "Upper Body Strength",
+    description: "Upper-body strength and push/pull focus.",
+    capacity: 14,
+  },
+  {
     title: "Strong After 40th",
     description: "Strength and conditioning tailored for 40+.",
     capacity: 14,
   },
   {
-    title: "Full Body Conditioning",
-    description: "Cardio and conditioning across the full body.",
+    title: "Core Reset",
+    description: "Core strength and stability session.",
+    capacity: 14,
+  },
+  {
+    title: "Lower Body Reset",
+    description: "Lower-body strength and glute focus.",
+    capacity: 14,
+  },
+  {
+    title: "Circuit Reset",
+    description: "Conditioning circuits across the full body.",
     capacity: 14,
   },
   {
@@ -30,6 +45,17 @@ export const RESET_WEEKLY_CLASS_TYPES = [
     capacity: 14,
   },
   {
+    title: "Reset Bootcamp",
+    description: "High-energy bootcamp session.",
+    capacity: 16,
+  },
+  // Legacy titles kept so existing DB rows and tiers still resolve.
+  {
+    title: "Full Body Conditioning",
+    description: "Cardio and conditioning across the full body.",
+    capacity: 14,
+  },
+  {
     title: "Mummy Fit",
     description: "Postnatal-friendly fitness for mums.",
     capacity: 14,
@@ -38,11 +64,6 @@ export const RESET_WEEKLY_CLASS_TYPES = [
     title: "Legs & Glutes",
     description: "Lower-body strength and glute focus.",
     capacity: 14,
-  },
-  {
-    title: "Reset Bootcamp",
-    description: "Saturday bootcamp — Reset signature session.",
-    capacity: 16,
   },
   {
     title: "Sound Healing",
@@ -58,35 +79,41 @@ export const RESET_WEEKLY_CLASS_TYPES = [
 
 /** JavaScript day index: 0 = Sunday … 6 = Saturday */
 export const RESET_WEEKLY_SLOTS = [
-  // Monday
+  // Monday (unchanged — already live for November)
   { classTitle: "Full Body Strength", dayOfWeek: 1, hour: 6, minute: 30 },
   { classTitle: "Strong After 40th", dayOfWeek: 1, hour: 9, minute: 30 },
   { classTitle: "Full Body Conditioning", dayOfWeek: 1, hour: 18, minute: 30 },
   { classTitle: "Woman Only Training", dayOfWeek: 1, hour: 19, minute: 30 },
   // Tuesday
-  { classTitle: "Hyrox Training", dayOfWeek: 2, hour: 6, minute: 30 },
-  { classTitle: "Mummy Fit", dayOfWeek: 2, hour: 9, minute: 30 },
-  { classTitle: "Strong After 40th", dayOfWeek: 2, hour: 18, minute: 30 },
-  { classTitle: "Woman Only Training", dayOfWeek: 2, hour: 19, minute: 30 },
+  { classTitle: "Hyrox Training", dayOfWeek: 2, hour: 7, minute: 0 },
+  { classTitle: "Core Reset", dayOfWeek: 2, hour: 8, minute: 0 },
+  { classTitle: "Full Body Strength", dayOfWeek: 2, hour: 9, minute: 15 },
+  { classTitle: "Lower Body Reset", dayOfWeek: 2, hour: 10, minute: 15 },
+  { classTitle: "Hyrox Training", dayOfWeek: 2, hour: 18, minute: 30 },
+  { classTitle: "Core Reset", dayOfWeek: 2, hour: 19, minute: 30 },
   // Wednesday
-  { classTitle: "Hyrox Training", dayOfWeek: 3, hour: 6, minute: 30 },
-  { classTitle: "Legs & Glutes", dayOfWeek: 3, hour: 9, minute: 30 },
-  { classTitle: "Full Body Strength", dayOfWeek: 3, hour: 18, minute: 30 },
-  { classTitle: "Full Body Conditioning", dayOfWeek: 3, hour: 19, minute: 30 },
-  // Thursday
-  { classTitle: "Hyrox Training", dayOfWeek: 4, hour: 6, minute: 30 },
-  { classTitle: "Mummy Fit", dayOfWeek: 4, hour: 9, minute: 30 },
-  { classTitle: "Strong After 40th", dayOfWeek: 4, hour: 18, minute: 30 },
-  { classTitle: "Woman Only Training", dayOfWeek: 4, hour: 19, minute: 30 },
+  { classTitle: "Reset Bootcamp", dayOfWeek: 3, hour: 7, minute: 0 },
+  { classTitle: "Upper Body Strength", dayOfWeek: 3, hour: 8, minute: 0 },
+  { classTitle: "Strong After 40th", dayOfWeek: 3, hour: 9, minute: 15 },
+  { classTitle: "Woman Only Training", dayOfWeek: 3, hour: 18, minute: 30 },
+  { classTitle: "Woman Only Training", dayOfWeek: 3, hour: 19, minute: 30 },
+  // Thursday (evening Core Reset — client note had a typo on AM/PM)
+  { classTitle: "Hyrox Training", dayOfWeek: 4, hour: 7, minute: 0 },
+  { classTitle: "Full Body Strength", dayOfWeek: 4, hour: 8, minute: 0 },
+  { classTitle: "Circuit Reset", dayOfWeek: 4, hour: 9, minute: 15 },
+  { classTitle: "Hyrox Training", dayOfWeek: 4, hour: 18, minute: 30 },
+  { classTitle: "Core Reset", dayOfWeek: 4, hour: 19, minute: 30 },
   // Friday
-  { classTitle: "Hyrox Training", dayOfWeek: 5, hour: 6, minute: 30 },
-  { classTitle: "Strong After 40th", dayOfWeek: 5, hour: 9, minute: 30 },
-  { classTitle: "Full Body Conditioning", dayOfWeek: 5, hour: 18, minute: 30 },
+  { classTitle: "Hyrox Training", dayOfWeek: 5, hour: 7, minute: 0 },
+  { classTitle: "Full Body Strength", dayOfWeek: 5, hour: 8, minute: 0 },
+  { classTitle: "Lower Body Reset", dayOfWeek: 5, hour: 9, minute: 15 },
+  { classTitle: "Woman Only Training", dayOfWeek: 5, hour: 19, minute: 0 },
+  { classTitle: "Full Body Strength", dayOfWeek: 5, hour: 20, minute: 0 },
   // Saturday
-  { classTitle: "Reset Bootcamp", dayOfWeek: 6, hour: 10, minute: 0 },
-  { classTitle: "Sound Healing", dayOfWeek: 6, hour: 11, minute: 0 },
-  // Sunday
-  { classTitle: "Mobility and Recovery", dayOfWeek: 0, hour: 10, minute: 0 },
+  { classTitle: "Hyrox Training", dayOfWeek: 6, hour: 7, minute: 0 },
+  { classTitle: "Woman Only Training", dayOfWeek: 6, hour: 9, minute: 0 },
+  { classTitle: "Hyrox Training", dayOfWeek: 6, hour: 10, minute: 0 },
+  // Sunday — closed
 ] as const;
 
 function addMinutes(date: Date, minutes: number) {

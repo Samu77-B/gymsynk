@@ -13,10 +13,12 @@
     "db:seed": "tsx scripts/seed.ts",
     "db:seed-reset": "tsx scripts/seed-reset.ts",
     "db:sync-reset-schedule": "tsx scripts/sync-reset-schedule.ts",
+    "db:seed-reset-opening-schedule": "tsx scripts/seed-reset-opening-schedule.ts",
     "db:seed-reset-group-training": "tsx scripts/seed-reset-group-training.ts",
     "db:enable-reset-features": "tsx scripts/enable-reset-features.ts",
     "db:set-reset-staff-passwords": "tsx scripts/set-reset-staff-passwords.ts",
-    "db:setup": "tsx scripts/setup.ts"
+    "db:setup": "tsx scripts/setup.ts",
+    "email:send-member-welcome": "tsx scripts/send-member-welcome.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -35,6 +37,7 @@
     "react": "19.2.8",
     "react-dom": "19.2.8",
     "react-qr-code": "^2.2.0",
+    "resend": "^6.31.0",
     "shadcn": "^4.21.0",
     "stripe": "^22.6.1",
     "tw-animate-css": "^1.4.0",

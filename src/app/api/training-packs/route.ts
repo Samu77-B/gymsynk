@@ -20,6 +20,7 @@ const createPackSchema = z.object({
   note: z.string().trim().max(500).optional().nullable(),
   sortOrder: z.coerce.number().int().min(0).max(100).optional(),
   active: z.boolean().optional(),
+  stripePriceId: z.string().trim().max(255).optional().nullable(),
 });
 
 function formatPrice(value: number) {
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
       note: parsed.data.note?.trim() || null,
       sortOrder,
       active: parsed.data.active ?? true,
+      stripePriceId: parsed.data.stripePriceId?.trim() || null,
     })
     .returning();
 

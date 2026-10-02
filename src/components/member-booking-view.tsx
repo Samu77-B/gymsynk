@@ -1,7 +1,14 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
+import Link from "next/link";
+import { addDays, format, parseISO } from "date-fns";
 import { useCallback, useEffect, useState } from "react";
+
+import {
+  formatScheduleWeekLabel,
+  scheduleWeekQueryParams,
+  startOfScheduleWeek,
+} from "@/lib/schedule-range";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,10 +50,18 @@ export function MemberBookingView() {
   const [packs, setPacks] = useState<Pack[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [weekStart, setWeekStart] = useState(() => startOfScheduleWeek());
+  const [weekInitialized, setWeekInitialized] = useState(false);
 
   const load = useCallback(async () => {
+    if (!weekInitialized) {
+      return;
+    }
+    const { start, end } = scheduleWeekQueryParams(weekStart);
+    const scheduleQuery = new URLSearchParams({ start, end });
+
     const [scheduleResponse, bookingResponse, packResponse] = await Promise.all([
-      fetch("/api/schedules"),
+      fetch(`/api/schedules?${scheduleQuery.toString()}`),
       fetch("/api/bookings"),
       fetch("/api/member-packs"),
     ]);
@@ -58,6 +73,21 @@ export function MemberBookingView() {
     setSchedules(scheduleData.schedules ?? []);
     setBookings(bookingData.bookings ?? []);
     setPacks(packData.packs ?? []);
+  }, [weekStart, weekInitialized]);
+
+  useEffect(() => {
+    async function bootstrapWeek() {
+      const response = await fetch("/api/schedules");
+      const json = await response.json();
+
+      if (response.ok && json.suggestedWeekStart) {
+        setWeekStart(startOfScheduleWeek(parseISO(json.suggestedWeekStart)));
+      }
+
+      setWeekInitialized(true);
+    }
+
+    void bootstrapWeek();
   }, []);
 
   useEffect(() => {
@@ -78,7 +108,13 @@ export function MemberBookingView() {
       const data = await response.json();
 
       if (!response.ok) {
-        setMessage(data.error ?? "Booking failed");
+        if (response.status === 402 && data.buyCredits) {
+          setMessage(
+            `${data.error ?? "You need credits to book."} Visit Credits to buy a package.`,
+          );
+        } else {
+          setMessage(data.error ?? "Booking failed");
+        }
         return;
       }
 
@@ -127,9 +163,69 @@ export function MemberBookingView() {
   }
 
   const activePacks = packs.filter((pack) => pack.status === "active");
+  const creditsLeft = activePacks.reduce((sum, pack) => {
+    if (pack.unlimited) {
+      return sum;
+    }
+
+    return sum + Math.max(pack.remaining ?? 0, 0);
+  }, 0);
+  const lowCredits =
+    activePacks.length > 0 &&
+    !activePacks.some((pack) => pack.unlimited) &&
+    creditsLeft <= 2;
 
   return (
     <div className="grid w-full grid-cols-1 gap-4 md:grid-cols-2">
+      <Card className="md:col-span-2">
+        <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium">Classes this week</p>
+            <p className="text-sm text-muted-foreground">
+              {formatScheduleWeekLabel(weekStart)}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setWeekStart((current) => addDays(current, -7))
+              }
+            >
+              Previous
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekStart(startOfScheduleWeek())}
+            >
+              This week
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekStart((current) => addDays(current, 7))}
+            >
+              Next
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {lowCredits ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 md:col-span-2">
+          {creditsLeft === 0
+            ? "You have no class credits left."
+            : `Only ${creditsLeft} credit${creditsLeft === 1 ? "" : "s"} left.`}{" "}
+          <Link className="font-medium underline" href="/member/credits">
+            Buy more credits
+          </Link>
+        </p>
+      ) : null}
       {activePacks.length > 0 ? (
         <div className="flex flex-wrap gap-2 md:col-span-2">
           {activePacks.map((pack) => (
@@ -234,7 +330,8 @@ export function MemberBookingView() {
 
       {schedules.length === 0 ? (
         <p className="text-center text-sm text-muted-foreground md:col-span-2">
-          No upcoming classes in the next 7 days.
+          No classes this week. Try Next week if you are booking ahead (e.g.
+          opening week).
         </p>
       ) : null}
     </div>

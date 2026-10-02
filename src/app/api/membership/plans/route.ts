@@ -3,6 +3,7 @@ import { and, asc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
 import { membershipPlans } from "@/db/schema";
 import { getDefaultTenantSlug, getTenantBySlug } from "@/lib/membership-provision";
+import { resolveBillingModel } from "@/lib/tenant-billing";
 import { resolveTenantFeatures } from "@/lib/tenant-features";
 
 export async function GET(request: Request) {
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
       name: tenant.name,
       slug: tenant.slug,
     },
+    billingModel: resolveBillingModel(tenant),
     features,
     plans: plans.map((plan) => ({
       id: plan.id,

@@ -1,7 +1,13 @@
 "use client";
 
-import { format, parseISO } from "date-fns";
-import { useEffect, useState } from "react";
+import { addDays, format, parseISO } from "date-fns";
+import { useCallback, useEffect, useState } from "react";
+
+import {
+  formatScheduleWeekLabel,
+  scheduleWeekQueryParams,
+  startOfScheduleWeek,
+} from "@/lib/schedule-range";
 
 import { AdminClassTypesView } from "@/components/admin-class-types-view";
 import { Badge } from "@/components/ui/badge";
@@ -121,10 +127,40 @@ export function AdminScheduleView({
     sessionsAdded: number;
     upcomingCount: number;
   } | null>(null);
+  const [weekStart, setWeekStart] = useState(() => startOfScheduleWeek());
+  const [weekInitialized, setWeekInitialized] = useState(false);
 
-  async function loadData() {
+  useEffect(() => {
+    async function loadOpeningWeek() {
+      const response = await fetch("/api/tenant/features");
+      const json = await response.json();
+
+      if (!response.ok || !json.scheduleDisplayStart) {
+        setWeekInitialized(true);
+        return;
+      }
+
+      const opening = startOfScheduleWeek(parseISO(json.scheduleDisplayStart));
+
+      if (opening.getTime() > startOfScheduleWeek().getTime()) {
+        setWeekStart(opening);
+      }
+
+      setWeekInitialized(true);
+    }
+
+    void loadOpeningWeek();
+  }, []);
+
+  const loadData = useCallback(async () => {
+    if (!weekInitialized) {
+      return;
+    }
+    const { start, end } = scheduleWeekQueryParams(weekStart);
+    const scheduleQuery = new URLSearchParams({ start, end });
+
     const [scheduleRes, classRes, trainerRes] = await Promise.all([
-      fetch("/api/schedules"),
+      fetch(`/api/schedules?${scheduleQuery.toString()}`),
       fetch("/api/classes"),
       fetch("/api/users?role=trainer,admin,owner&active=true"),
     ]);
@@ -136,11 +172,11 @@ export function AdminScheduleView({
     setSchedules(scheduleData.schedules ?? []);
     setClasses(classData.classes ?? []);
     setTrainers(trainerData.users ?? []);
-  }
+  }, [weekStart, weekInitialized]);
 
   useEffect(() => {
     void loadData();
-  }, []);
+  }, [loadData]);
 
   async function createSchedule(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -755,6 +791,52 @@ export function AdminScheduleView({
             </form>
           </CardContent>
         </Card>
+      ) : null}
+
+      <Card>
+        <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium">Schedule week</p>
+            <p className="text-sm text-muted-foreground">
+              {formatScheduleWeekLabel(weekStart)}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                setWeekStart((current) => addDays(current, -7))
+              }
+            >
+              Previous week
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekStart(startOfScheduleWeek())}
+            >
+              This week
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setWeekStart((current) => addDays(current, 7))}
+            >
+              Next week
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {schedules.length === 0 ? (
+        <p className="text-sm text-muted-foreground">
+          No classes in this week. Use Previous/Next week to browse (e.g.
+          opening week in November), or add sessions below.
+        </p>
       ) : null}
 
       {Object.entries(grouped).map(([day, items]) => (

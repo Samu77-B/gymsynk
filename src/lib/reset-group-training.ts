@@ -28,9 +28,13 @@ export const RESET_GROUP_TRAINING: ResetTierSeed[] = [
     sortOrder: 1,
     classTitles: [
       "Full Body Strength",
-      "Full Body Conditioning",
+      "Upper Body Strength",
       "Woman Only Training",
-      "Mummy Fit",
+      "Strong After 40th",
+      "Core Reset",
+      "Lower Body Reset",
+      "Circuit Reset",
+      "Full Body Conditioning",
     ],
     packs: [
       {
@@ -74,12 +78,7 @@ export const RESET_GROUP_TRAINING: ResetTierSeed[] = [
     name: "Tier 2",
     pricePerClass: "15.00",
     sortOrder: 2,
-    classTitles: [
-      "Legs & Glutes",
-      "Reset Bootcamp",
-      "Mobility and Recovery",
-      "Sound Healing",
-    ],
+    classTitles: ["Reset Bootcamp"],
     packs: [
       {
         label: "Pay As You Go",

@@ -38,6 +38,7 @@ export async function GET() {
       featureClassBooking: true,
       featureSessionPacks: true,
       featureDoorEntry: true,
+      scheduleDisplayStart: true,
     },
   });
 
@@ -45,7 +46,10 @@ export async function GET() {
     return jsonError("Gym not found", 404);
   }
 
-  return NextResponse.json({ features: resolveTenantFeatures(tenant) });
+  return NextResponse.json({
+    features: resolveTenantFeatures(tenant),
+    scheduleDisplayStart: tenant.scheduleDisplayStart,
+  });
 }
 
 export async function PATCH(request: Request) {

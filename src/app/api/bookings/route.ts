@@ -10,7 +10,10 @@ import {
   findActiveBooking,
   resolveScheduleCapacity,
 } from "@/lib/bookings";
-import { userCanBookClasses } from "@/lib/membership";
+import {
+  requireCreditForConfirmedBooking,
+  userCanBookClasses,
+} from "@/lib/membership";
 import { applyPackCreditToBooking } from "@/lib/packs";
 
 const createBookingSchema = z.object({
@@ -173,6 +176,23 @@ export async function POST(request: Request) {
   const capacity = resolveScheduleCapacity(schedule);
   const confirmedCount = await countConfirmedBookings(schedule.id);
   const bookingStatus = confirmedCount >= capacity ? "waitlisted" : "confirmed";
+
+  if (bookingStatus === "confirmed" && session.role === "member") {
+    const creditCheck = await requireCreditForConfirmedBooking(
+      session.tenantId,
+      memberId,
+    );
+
+    if (!creditCheck.ok) {
+      return Response.json(
+        {
+          error: creditCheck.reason,
+          buyCredits: creditCheck.buyCredits ?? false,
+        },
+        { status: 402 },
+      );
+    }
+  }
 
   const [booking] = await db
     .insert(bookings)

@@ -37,6 +37,10 @@ export function resolvePublicBookUrl(options: {
     return `${base}/join?tenant=${encodeURIComponent(options.tenantSlug)}`;
   }
 
+  if (options.features.sessionPacks) {
+    return `${base}/buy?tenant=${encodeURIComponent(options.tenantSlug)}`;
+  }
+
   if (options.features.classBooking) {
     const redirect = encodeURIComponent("/member/book");
     return `${base}/login?tenant=${encodeURIComponent(options.tenantSlug)}&redirect=${redirect}`;

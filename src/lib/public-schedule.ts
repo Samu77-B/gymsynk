@@ -8,6 +8,11 @@ import {
   startOfDay,
 } from "date-fns";
 
+import {
+  endOfScheduleWeek,
+  resolvePublicScheduleWeekStart,
+} from "@/lib/schedule-range";
+
 import { getDb } from "@/db";
 import { classSchedules, tenants } from "@/db/schema";
 import { resolveTenantPrimaryColor } from "@/lib/tenant-branding";
@@ -84,10 +89,13 @@ export async function getPublicSchedule(options: {
 
   const rangeStart = options.startParam
     ? startOfDay(parseISO(options.startParam))
-    : startOfDay(new Date());
+    : resolvePublicScheduleWeekStart({
+        scheduleDisplayStart: tenant.scheduleDisplayStart,
+        startParam: options.startParam,
+      });
   const rangeEnd = options.endParam
     ? endOfDay(parseISO(options.endParam))
-    : endOfDay(addDays(rangeStart, 6));
+    : endOfDay(endOfScheduleWeek(rangeStart));
 
   const conditions = [
     eq(classSchedules.tenantId, tenant.id),

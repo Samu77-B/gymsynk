@@ -93,7 +93,6 @@ export function LoginForm({
               value={password}
               onChange={(event) => setPassword(event.target.value)}
               autoComplete="current-password"
-              required
             />
           </div>
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
@@ -103,7 +102,8 @@ export function LoginForm({
         </form>
         <p className="mt-4 text-sm text-muted-foreground">
           Staff sign in with the email and password provided by your gym or
-          GymSynk.
+          GymSynk. Members can leave password blank unless your gym gave you
+          one.
         </p>
       </CardContent>
     </Card>

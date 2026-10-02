@@ -60,6 +60,7 @@ export const packCreditReasonEnum = pgEnum("pack_credit_reason", [
   "booking",
   "booking_cancelled",
   "admin_adjustment",
+  "period_rollover",
 ]);
 
 export const parqStatusEnum = pgEnum("parq_status", [
@@ -84,6 +85,12 @@ export const gymGuideKindEnum = pgEnum("gym_guide_kind", [
   "nutrition",
 ]);
 
+export const billingModelEnum = pgEnum("billing_model", [
+  "credits_only",
+  "membership_only",
+  "hybrid",
+]);
+
 export const tenants = pgTable("tenants", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -94,8 +101,29 @@ export const tenants = pgTable("tenants", {
   featureClassBooking: boolean("feature_class_booking").notNull().default(true),
   featureSessionPacks: boolean("feature_session_packs").notNull().default(false),
   featureDoorEntry: boolean("feature_door_entry").notNull().default(false),
+  billingModel: billingModelEnum("billing_model")
+    .notNull()
+    .default("membership_only"),
+  /** When true, unused session credits carry into the next monthly pack period. */
+  creditRollover: boolean("credit_rollover").notNull().default(false),
+  stripeConnectAccountId: varchar("stripe_connect_account_id", { length: 255 }),
+  stripeConnectChargesEnabled: boolean("stripe_connect_charges_enabled")
+    .notNull()
+    .default(false),
+  stripeConnectDetailsSubmitted: boolean("stripe_connect_details_submitted")
+    .notNull()
+    .default(false),
+  stripePlatformSubscriptionId: varchar("stripe_platform_subscription_id", {
+    length: 255,
+  }),
+  stripePlatformSubscriptionStatus: varchar(
+    "stripe_platform_subscription_status",
+    { length: 50 },
+  ),
   websiteUrl: varchar("website_url", { length: 2048 }),
   externalBookUrl: varchar("external_book_url", { length: 2048 }),
+  /** When set and still in the future, public schedule embed defaults to this week. */
+  scheduleDisplayStart: date("schedule_display_start"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
@@ -163,6 +191,7 @@ export const trainingPackOptions = pgTable("training_pack_options", {
   note: text("note"),
   sortOrder: integer("sort_order").notNull().default(0),
   active: boolean("active").notNull().default(true),
+  stripePriceId: varchar("stripe_price_id", { length: 255 }),
 });
 
 /**

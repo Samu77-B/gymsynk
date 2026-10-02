@@ -10,6 +10,7 @@ import {
   ScanLine,
   UserRound,
   Utensils,
+  Wallet,
   type LucideIcon,
 } from "lucide-react";
 
@@ -20,6 +21,7 @@ import { memberAppHref, memberAppTabs, type MemberAppTab } from "@/lib/member-ap
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
 import type { TenantBrand } from "@/lib/tenant-branding";
+import type { BillingModel } from "@/lib/tenant-billing";
 import type { TenantFeatures } from "@/lib/tenant-features";
 
 const tabIcons: Record<MemberAppTab["href"], LucideIcon> = {
@@ -29,6 +31,7 @@ const tabIcons: Record<MemberAppTab["href"], LucideIcon> = {
   "/member/access": ScanLine,
   "/member/activity": BarChart3,
   "/member/membership": UserRound,
+  "/member/credits": Wallet,
 };
 
 function GymMark({ brand }: { brand: TenantBrand }) {
@@ -52,17 +55,21 @@ export function MemberAppShell({
   session,
   brand,
   features,
+  billingModel = "membership_only",
   children,
 }: {
   session: SessionUser;
   brand: TenantBrand;
   features: TenantFeatures;
+  billingModel?: BillingModel;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const tabs = memberAppTabs(features);
+  const tabs = memberAppTabs(features, billingModel);
   const preview = session.role !== "member";
-  const homeHref = preview ? (memberAppHref(features) ?? "/") : "/";
+  const homeHref = preview
+    ? (memberAppHref(features, billingModel) ?? "/")
+    : "/";
 
   return (
     <div className="min-h-dvh bg-muted/30">

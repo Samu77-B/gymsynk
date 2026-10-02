@@ -141,7 +141,16 @@ export function AdminMembersView({ tenantSlug }: { tenantSlug: string }) {
     }
 
     const savedName = addName;
-    setMessage(`${savedName} added. Complete their profile below.`);
+    const welcomeEmail = data.welcomeEmail as
+      | { sent?: boolean; error?: string }
+      | undefined;
+    let addMessage = `${savedName} added. Complete their profile below.`;
+    if (welcomeEmail?.sent) {
+      addMessage = `${savedName} added and welcome email sent to ${addEmail}.`;
+    } else if (welcomeEmail?.error) {
+      addMessage = `${savedName} added, but welcome email failed: ${welcomeEmail.error}`;
+    }
+    setMessage(addMessage);
     setAddName("");
     setAddEmail("");
     setAddPhone("");

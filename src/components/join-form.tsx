@@ -31,6 +31,8 @@ type TenantFeatures = {
   sessionPacks: boolean;
 };
 
+type BillingModel = "credits_only" | "membership_only" | "hybrid";
+
 export function JoinForm({
   tenantSlug,
   cancelled,
@@ -40,6 +42,7 @@ export function JoinForm({
 }) {
   const [tenant, setTenant] = useState<TenantInfo | null>(null);
   const [features, setFeatures] = useState<TenantFeatures | null>(null);
+  const [billingModel, setBillingModel] = useState<BillingModel | null>(null);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [selectedPlanId, setSelectedPlanId] = useState<string | null>(null);
   const [fullName, setFullName] = useState("");
@@ -62,6 +65,7 @@ export function JoinForm({
 
       setTenant(data.tenant);
       setFeatures(data.features ?? null);
+      setBillingModel(data.billingModel ?? null);
       setPlans(data.plans ?? []);
       if (data.plans?.[0]) {
         setSelectedPlanId(data.plans[0].id);
@@ -108,24 +112,35 @@ export function JoinForm({
   const selectedPlan = plans.find((plan) => plan.id === selectedPlanId);
 
   if (features && !features.memberships) {
+    const buyHref = `/buy?tenant=${encodeURIComponent(tenantSlug)}`;
+
     return (
       <Card className="border-border/60 shadow-sm">
         <CardHeader className="text-center">
-          <CardTitle>Join {tenant?.name ?? "the gym"}</CardTitle>
+          <CardTitle>
+            {billingModel === "credits_only"
+              ? `Join ${tenant?.name ?? "the gym"} with credits`
+              : `Join ${tenant?.name ?? "the gym"}`}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4 text-center">
           <p className="text-sm text-muted-foreground">
-            Online membership signup isn&apos;t open yet for{" "}
-            {tenant?.name ?? "this gym"}. Log in if you already have an account,
-            or contact the gym to get started with class booking.
+            {billingModel === "credits_only"
+              ? "This gym uses class credit packages instead of monthly memberships. Buy credits to create your login, book classes, and top up anytime."
+              : `Online membership signup isn't open yet for ${tenant?.name ?? "this gym"}. Log in if you already have an account, or contact the gym.`}
           </p>
           <div className="flex flex-col gap-2 sm:flex-row sm:justify-center">
-            <Button render={<Link href="/login" />}>Log in</Button>
-            {features.classBooking ? (
-              <Button variant="outline" render={<Link href="/login" />}>
-                Book classes after login
-              </Button>
+            {billingModel === "credits_only" && features.sessionPacks ? (
+              <Button render={<Link href={buyHref} />}>Buy credit package</Button>
             ) : null}
+            <Button
+              variant={
+                billingModel === "credits_only" ? "outline" : "default"
+              }
+              render={<Link href="/login" />}
+            >
+              Log in
+            </Button>
           </div>
         </CardContent>
       </Card>

@@ -11,6 +11,7 @@ import {
   unauthorizedResponse,
 } from "@/lib/auth";
 import { describePacks, rollPackPeriodForward, serializePack } from "@/lib/packs";
+import { getCreditRolloverForTenants } from "@/lib/tenant-billing";
 
 const updatePackSchema = z.object({
   status: z.enum(["active", "paused", "cancelled", "expired"]).optional(),
@@ -56,7 +57,14 @@ export async function PATCH(request: Request, context: RouteContext) {
     return parsed.response;
   }
 
-  const pack = await rollPackPeriodForward(existing);
+  const rolloverByTenant = await getCreditRolloverForTenants([
+    existing.tenantId,
+  ]);
+  const pack = await rollPackPeriodForward(
+    existing,
+    new Date(),
+    rolloverByTenant.get(existing.tenantId) ?? false,
+  );
 
   if (parsed.data.adjustCredits) {
     await db.insert(packCredits).values({

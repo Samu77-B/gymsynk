@@ -18,6 +18,7 @@ import { getSession } from "@/lib/auth";
 import { getTenantBrand } from "@/lib/tenant-branding";
 import { countCheckInsToday } from "@/lib/check-ins";
 import { canScanDoorAccess } from "@/lib/gym-access";
+import { getTenantBillingModel } from "@/lib/tenant-billing";
 import { getTenantFeatures, type TenantFeatureKey } from "@/lib/tenant-features";
 
 const quickLinks: Array<{
@@ -81,9 +82,10 @@ export default async function HomePage() {
     return <LandingPage />;
   }
 
-  const [brand, features] = await Promise.all([
+  const [brand, features, billingModel] = await Promise.all([
     getTenantBrand(session.tenantSlug),
     getTenantFeatures(session.tenantSlug),
+    getTenantBillingModel(session.tenantSlug),
   ]);
   const tenantFeatures = features ?? {
     memberships: true,
@@ -94,7 +96,12 @@ export default async function HomePage() {
 
   if (session.role === "member") {
     return (
-      <DashboardShell session={session} brand={brand} features={tenantFeatures}>
+      <DashboardShell
+        session={session}
+        brand={brand}
+        features={tenantFeatures}
+        billingModel={billingModel ?? "membership_only"}
+      >
         <div className="space-y-2">
           <h1 className="text-2xl font-semibold tracking-tight">
             Hello, {session.fullName.split(" ")[0]}
@@ -123,7 +130,12 @@ export default async function HomePage() {
   );
 
   return (
-    <DashboardShell session={session} brand={brand} features={tenantFeatures}>
+    <DashboardShell
+      session={session}
+      brand={brand}
+      features={tenantFeatures}
+      billingModel={billingModel ?? "membership_only"}
+    >
       <div className="mx-auto max-w-6xl space-y-8">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">

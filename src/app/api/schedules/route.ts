@@ -3,7 +3,8 @@ import { addDays, endOfDay, parseISO, startOfDay } from "date-fns";
 import { z } from "zod";
 
 import { getDb } from "@/db";
-import { classSchedules, classes, users } from "@/db/schema";
+import { classSchedules, classes, tenants, users } from "@/db/schema";
+import { resolvePublicScheduleWeekStart } from "@/lib/schedule-range";
 import { parseJson } from "@/lib/api";
 import {
   canManageSchedules,
@@ -85,7 +86,23 @@ export async function GET(request: Request) {
     };
   });
 
-  return Response.json({ schedules, rangeStart, rangeEnd });
+  const tenant = await db.query.tenants.findFirst({
+    where: eq(tenants.id, session.tenantId),
+    columns: { scheduleDisplayStart: true },
+  });
+
+  const suggestedWeekStart = tenant
+    ? resolvePublicScheduleWeekStart({
+        scheduleDisplayStart: tenant.scheduleDisplayStart,
+      }).toISOString()
+    : rangeStart.toISOString();
+
+  return Response.json({
+    schedules,
+    rangeStart,
+    rangeEnd,
+    suggestedWeekStart,
+  });
 }
 
 export async function POST(request: Request) {

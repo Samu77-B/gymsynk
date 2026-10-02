@@ -3,6 +3,7 @@ import { and, eq, inArray, isNull, or, sql } from "drizzle-orm";
 
 import { getDb } from "@/db";
 import { bookings, memberPacks, packCredits } from "@/db/schema";
+import { getCreditRolloverForTenants } from "@/lib/tenant-billing";
 
 export type MemberPack = typeof memberPacks.$inferSelect;
 
@@ -14,36 +15,100 @@ export type PackBalance = {
   unlimited: boolean;
 };
 
+async function netDeltaForPeriod(memberPackId: string, periodStart: Date) {
+  const [row] = await getDb()
+    .select({
+      total: sql<number>`coalesce(sum(${packCredits.delta}), 0)`,
+    })
+    .from(packCredits)
+    .where(
+      and(
+        eq(packCredits.memberPackId, memberPackId),
+        eq(packCredits.periodStart, periodStart),
+      ),
+    );
+
+  return Number(row?.total ?? 0);
+}
+
+async function insertPeriodRollover(options: {
+  tenantId: string;
+  memberPackId: string;
+  delta: number;
+  periodStart: Date;
+}) {
+  if (options.delta <= 0) {
+    return;
+  }
+
+  await getDb().insert(packCredits).values({
+    tenantId: options.tenantId,
+    memberPackId: options.memberPackId,
+    delta: options.delta,
+    reason: "period_rollover",
+    periodStart: options.periodStart,
+  });
+}
+
 /**
- * Packs refill each period instead of accumulating, so the period window is
- * advanced lazily whenever a pack is read. Doing it on read rather than on a
- * schedule means there is no cron job to miss and no drift if the app is idle.
+ * Packs use monthly periods. When rollover is off, unused credits are scoped to
+ * the current period only. When rollover is on, leftover sessions are written
+ * into the next period as ledger credits. Periods advance lazily on read.
  */
-export async function rollPackPeriodForward(pack: MemberPack, now = new Date()) {
+export async function rollPackPeriodForward(
+  pack: MemberPack,
+  now = new Date(),
+  creditRollover = false,
+) {
   if (pack.status !== "active" || !isAfter(now, pack.currentPeriodEnd)) {
     return pack;
   }
 
-  let start = pack.currentPeriodStart;
-  let end = pack.currentPeriodEnd;
+  const db = getDb();
+  let current = pack;
 
   // Guarded so a pack left dormant for years cannot spin here.
-  for (let step = 0; step < 240 && isAfter(now, end); step += 1) {
-    start = end;
-    end = addMonths(end, 1);
+  for (let step = 0; step < 240 && isAfter(now, current.currentPeriodEnd); step += 1) {
+    const endingStart = current.currentPeriodStart;
+    const nextStart = current.currentPeriodEnd;
+    const nextEnd = addMonths(nextStart, 1);
+
+    if (
+      creditRollover &&
+      current.sessionsPerPeriod !== null &&
+      current.sessionsPerPeriod > 0
+    ) {
+      const net = await netDeltaForPeriod(current.id, endingStart);
+      const unused = Math.max(0, current.sessionsPerPeriod + net);
+
+      if (unused > 0) {
+        await insertPeriodRollover({
+          tenantId: current.tenantId,
+          memberPackId: current.id,
+          delta: unused,
+          periodStart: nextStart,
+        });
+      }
+    }
+
+    const [updated] = await db
+      .update(memberPacks)
+      .set({
+        currentPeriodStart: nextStart,
+        currentPeriodEnd: nextEnd,
+        updatedAt: new Date(),
+      })
+      .where(eq(memberPacks.id, current.id))
+      .returning();
+
+    current = updated ?? {
+      ...current,
+      currentPeriodStart: nextStart,
+      currentPeriodEnd: nextEnd,
+    };
   }
 
-  const [updated] = await getDb()
-    .update(memberPacks)
-    .set({
-      currentPeriodStart: start,
-      currentPeriodEnd: end,
-      updatedAt: new Date(),
-    })
-    .where(eq(memberPacks.id, pack.id))
-    .returning();
-
-  return updated ?? pack;
+  return current;
 }
 
 async function sumDeltasByPack(packIds: string[], periodStarts: Date[]) {
@@ -75,8 +140,18 @@ async function sumDeltasByPack(packIds: string[], periodStarts: Date[]) {
 }
 
 export async function describePacks(packs: MemberPack[]): Promise<PackBalance[]> {
+  const rolloverByTenant = await getCreditRolloverForTenants(
+    packs.map((pack) => pack.tenantId),
+  );
+
   const rolled = await Promise.all(
-    packs.map((pack) => rollPackPeriodForward(pack)),
+    packs.map((pack) =>
+      rollPackPeriodForward(
+        pack,
+        new Date(),
+        rolloverByTenant.get(pack.tenantId) ?? false,
+      ),
+    ),
   );
 
   const totals = await sumDeltasByPack(

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { DashboardShell } from "@/components/dashboard-shell";
 import { getSession } from "@/lib/auth";
 import { getTenantBrand } from "@/lib/tenant-branding";
+import { getTenantBillingModel } from "@/lib/tenant-billing";
 import { getTenantFeatures } from "@/lib/tenant-features";
 
 export default async function MemberLayout({
@@ -16,15 +17,17 @@ export default async function MemberLayout({
     redirect("/login");
   }
 
-  const [brand, features] = await Promise.all([
+  const [brand, features, billingModel] = await Promise.all([
     getTenantBrand(session.tenantSlug),
     getTenantFeatures(session.tenantSlug),
+    getTenantBillingModel(session.tenantSlug),
   ]);
 
   return (
     <DashboardShell
       session={session}
       brand={brand}
+      billingModel={billingModel ?? "membership_only"}
       features={
         features ?? {
           memberships: true,

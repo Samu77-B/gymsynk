@@ -11,17 +11,20 @@ import { TenantBrandStyles } from "@/components/tenant-brand-styles";
 import { cn } from "@/lib/utils";
 import type { SessionUser } from "@/lib/auth";
 import type { TenantBrand } from "@/lib/tenant-branding";
+import type { BillingModel } from "@/lib/tenant-billing";
 import type { TenantFeatures } from "@/lib/tenant-features";
 
 export function DashboardShell({
   session,
   brand,
   features,
+  billingModel = "membership_only",
   children,
 }: {
   session: SessionUser;
   brand: TenantBrand;
   features: TenantFeatures;
+  billingModel?: BillingModel;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -50,7 +53,12 @@ export function DashboardShell({
     return (
       <>
         <TenantBrandStyles brand={brand} />
-        <MemberAppShell session={session} brand={brand} features={features}>
+        <MemberAppShell
+          session={session}
+          brand={brand}
+          features={features}
+          billingModel={billingModel}
+        >
           {children}
         </MemberAppShell>
       </>
